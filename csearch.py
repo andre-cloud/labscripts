@@ -32,6 +32,7 @@ parser.add_argument('-sc', '--scan', help='Input file is a sumup of a scan', act
 parser.add_argument('-d', '--description', help='Add a description to your calculation', type=str, nargs='+', default='\n')
 parser.add_argument('-a', '--angle', help='Angle to refer all other angle, used for scan only', type=int, default=180)
 parser.add_argument('-ff', '--from_file', help='Get input from files generated with a different headline. This has to be defined in the input file as first row.', type=str)
+parser.add_argument('-no', '--not_order', action='store_true', help='Use this flag to avoid the ordering of the conformer')
 
 args = parser.parse_args()
 
@@ -174,8 +175,9 @@ def make_calculations(file):
             elif len(set(list(angles < -360))) == 2:
                 angles += args.angle
         confs[:, 3] = angles
-
-    confs = confs[confs[:, 3].argsort()[::-1]] if not args.scan else confs[:, :-1]
+    
+    if not args.not_order:
+        confs = confs[confs[:, 3].argsort()[::-1]] if not args.scan else confs[:, :-1]
     # ∆E, bolzmann
     es = confs[:, -1].astype(np.float64) * H
     de = es-min(es)
