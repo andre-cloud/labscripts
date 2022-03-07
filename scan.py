@@ -1,6 +1,6 @@
 import numpy as np 
 import matplotlib.pyplot as plt
-from matplotlib.gridspec import GridSpec
+# from matplotlib.gridspec import GridSpec
 
 def lines(array, x, color, x_pad, y_pad, pad=0):
     
@@ -17,37 +17,38 @@ def lines(array, x, color, x_pad, y_pad, pad=0):
 
 
 
-data = np.loadtxt('nn_boc2_bn2/scan.txt')
+data = np.loadtxt('tests/scan.txt')
 x1 = data[:, 0]
-b3lyp = data[:, 1]
-x2 = data[:, 2] 
-m062x = data[:, 3] 
-x3 = data[:, 4]
-wB97xd = data[:, 5] 
+b3lyp = (data[:, 1] - min(data[:, 1]))*627.51
+# x2 = data[:, 2] 
+# m062x = data[:, 3] 
+# x3 = data[:, 4]
+# wB97xd = data[:, 5] 
 # x = data[:, 0]
 # b3lyp = data[:, 1]
 # m06 = data[:, 2]
 # wb97x = data[:, 3]
 
 
-plt.scatter(x1, b3lyp, lw=.5, color='salmon', alpha=1, label='B3LYP(BJ)')
-plt.scatter(x2, m062x + 10, lw=.5, color='brown', alpha=1, label='M06-2x')
-plt.scatter(x3, wB97xd +20 , lw=.5, color='darkgrey', alpha=1, label='ωB97x-D')
+plt.plot(x1, b3lyp, lw=1.5, color='salmon', alpha=1)
+# plt.scatter(x2, m062x + 10, lw=.5, color='brown', alpha=1, label='M06-2x')
+# plt.scatter(x3, wB97xd +20 , lw=.5, color='darkgrey', alpha=1, label='ωB97x-D')
 
-lines(b3lyp, x1, 'salmon', 20, -4, 0)
-lines(m062x, x2, 'brown', 15, 0, 10)
-lines(wB97xd, x3, 'darkgrey', 20, 1, 20)
+# lines(b3lyp, x1, 'salmon', 20, -4, 0)
+# lines(m062x, x2, 'brown', 15, 0, 10)
+# lines(wB97xd, x3, 'darkgrey', 20, 1, 20)
 
 
-plt.legend(loc='upper center', bbox_to_anchor=(0.5, -.125), fancybox=True, shadow=True, ncol=3)
+# plt.legend(loc='upper center', bbox_to_anchor=(0.5, -.125), fancybox=True, shadow=True, ncol=3)
 
 axes = plt.gca()
-axes.set_xlim([-125, 300])
-axes.set_ylim([0, 70])
+# axes.set_xlim([-125, 300])
+# axes.set_ylim([0, 70])
 
-plt.title('Scan of BnN(Boc)N(Boc)Bn')
+plt.title('Scan approach nucleophile to electrophile')
 plt.ylabel('∆E [kcal/mol]')
+plt.xlabel('Distance N-C [Å]')
 
 plt.tight_layout()
 # plt.show()
-plt.savefig('nn_boc2_bn2/scan.png', dpi=700, bbox_inches = 'tight')
+plt.savefig('tests/scan.png', dpi=700, bbox_inches = 'tight')

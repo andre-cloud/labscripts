@@ -10,9 +10,16 @@ pt = core.PeriodicTable(table="H=1")
 covalent_radius.init(pt)
 mass.init(pt)
 
-parser = argparse.ArgumentParser()
-parser.add_argument('-r', '--reference', help='The referement molecule [xyz format].', required=True)
-parser.add_argument('-f', '--files', help='The files to compare.', required=True, nargs='+')
+parser = argparse.ArgumentParser(description='''
+This script allows to calculate the RMSD on multiple structures. The RMSD is calculated with three different methods:\n
+- Classic: two structures are aligned on avarege and the RMSD is calculated for each atoms on couple (ix, jx)
+- CW: after the calculation of the center of weight, the RMSD is calculated considering the difference on the atom's distance to the center of weight
+- VMD: this algorithm is the same of the software VMD. It's a "classic" algorithm bet weighted on the atom mass
+''', formatter_class=argparse.RawTextHelpFormatter)
+
+parser.add_argument('reference', help='The referement molecule [xyz format].')
+parser.add_argument('files', help='The files to compare [xyz format].', nargs='+')
+parser.add_argument('-i', '--indexes', help='Index for alignment of the molecules. Count starts a 0. Default %(default)s', nargs=3, type=int, default=[])
 
 args = parser.parse_args()
 
@@ -28,10 +35,10 @@ def align_structures(structures:np.array, indexes=None):
     if isinstance(indexes, (list, tuple)):
         indexes = np.array(indexes)
 
-    indexes = slice(0,len(reference)) if indexes is None or len(indexes) == 0 else indexes.ravel()
-
-    reference -= np.mean(reference[indexes], axis=1)
-    targets -= np.mean(targets[indexes], axis=1)
+    if not(indexes is None or len(indexes) == 0):
+        indexes = slice(0,len(reference)) if indexes is None or len(indexes) == 0 else indexes.ravel()
+        reference -= np.mean(reference[indexes], axis=1)
+        targets -= np.mean(targets[indexes], axis=1)
 
     matrix = kabsch(reference, targets)
     return (matrix @ targets.T).T
@@ -60,7 +67,15 @@ def weight_rmsd(ref, file, numbers):
 ref = read(args.reference)
 ref_p = ref.positions[:]
 
-print('{:20s}\t{:10s}\t{:10s}\t{:10s}\t{:10s}'.format('CONF', 'Classic', 'CW', 'Aligned', 'VMD'))
+
+print('Number of structurs evaluated: '+str(len(args.files)))
+if args.indexes:
+    print('Molecule for RMSD-Aligned calculations aligned on ' + str(tuple(args.indexes)))
+else:
+    print('Molecule align with no index')
+
+print('='*30)
+print('{:20s}\t{:10s}\t{:10s}\t{:10s}'.format('CONF', 'Classic', 'CW', 'VMD'))
 for i in args.files:
 
     file = read(i)
@@ -80,13 +95,12 @@ for i in args.files:
 
 
     rmsd_m = rmsd_with_center_mass(ref_p, file_p, file.numbers)
-    out = align_structures((ref.positions, file.positions), (62,63, 129))
-    out = align_structures((ref.positions, out), (62,63, 129))
+    out = align_structures((ref.positions, file.positions), args.indexes)
+    out = align_structures((ref.positions, out), args.indexes)
     file.positions = np.array(out)
-    align = calc_rmsd(ref_p, file.positions)
 
     vmd_rmsd = weight_rmsd(ref.positions, file.positions, file.numbers)
 
 
     # print(re.split('\\\\|/', i))
-    print('{:20s}\t{:.5f} \t{:.5f} \t{:.5f} \t{:.5f}'.format(re.split('\\\\|/', i)[-1], classic , rmsd_m, align, vmd_rmsd))
+    print('{:20s}\t{:.5f} \t{:.5f} \t{:.5f}'.format(re.split('\\\\|/', i)[-1], classic , rmsd_m, vmd_rmsd))
