@@ -13,10 +13,12 @@ args = parser.parse_args(['/Users/andreapellegrini/Desktop/scratch/crest_conform
 
 def split(filename):
     flag = False 
+
     if len(args.file) == 1:
         directory = args.directory
     else:
         directory = args.directory + str(args.file.index(filename))
+        
     if os.path.exists(directory):
         if 'y' in input(f'A directory named {directory} already exists. Existing directory will be deleted, wanna procede? [y/n]').lower():
             shutil.rmtree(directory)   
