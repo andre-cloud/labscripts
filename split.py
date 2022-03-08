@@ -9,10 +9,10 @@ parser.add_argument('file', help='Add an xyz file to parse', nargs='+')
 parser.add_argument('-d', '--directory', help='Change the name of the directory. If more file selected it creates more directory, one for each file', default='structures')
 
 
-args = parser.parse_args()
+args = parser.parse_args(['/Users/andreapellegrini/Desktop/scratch/crest_conformers.xyz'])
 
 def split(filename):
-    flag = True 
+    flag = False 
     if len(args.file) == 1:
         directory = args.directory
     else:
@@ -34,10 +34,10 @@ def split(filename):
         flag = True
 
     with alive_bar(len(files)-1, title=filename) as bar:
-        for idx, file in enumerate(files, start=1):
+        for idx, file in enumerate(files, start=0):
             if not file or file == '':
                 continue
-            fn = file.split('\n')[1].split()[-1].strip('!')+'.xyz' if flag else 'CONF'+idx+'.xyz'
+            fn = file.split('\n')[1].split()[-1].strip('!')+'.xyz' if flag else 'CONF'+str(idx)+'.xyz'
             with open(os.path.join(directory, fn), 'w') as f:
                 f.write(parser)
                 f.write(file)
