@@ -9,7 +9,7 @@ parser.add_argument('file', help='Add an xyz file to parse', nargs='+')
 parser.add_argument('-d', '--directory', help='Change the name of the directory. If more file selected it creates more directory, one for each file', default='structures')
 
 
-args = parser.parse_args(['/Users/andreapellegrini/Desktop/scratch/crest_conformers.xyz'])
+args = parser.parse_args()
 
 def split(filename):
     flag = False 
@@ -18,7 +18,7 @@ def split(filename):
         directory = args.directory
     else:
         directory = args.directory + str(args.file.index(filename))
-        
+
     if os.path.exists(directory):
         if 'y' in input(f'A directory named {directory} already exists. Existing directory will be deleted, wanna procede? [y/n]').lower():
             shutil.rmtree(directory)   
