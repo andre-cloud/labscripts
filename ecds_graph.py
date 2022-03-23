@@ -15,6 +15,10 @@ import numpy as np
 import pandas as pd
 import pickle
 
+
+#TODO: Comparison between functionals
+
+
 parser = argparse.ArgumentParser()
 
 parser.add_argument('file', help='Log file(s) of the TD-SCF calculation', nargs='+')
@@ -182,7 +186,7 @@ def weight_plot():
             conv += g
             plt.plot(row['conv'][:, 0], g, color='gray', alpha=.3, label=(row['fln'].strip('.log').title()[:10]+'...') if len(args.file) > 1 else None)
             bar()
-    plt.plot(row['conv'][:, 0], conv, color='salmon', label='Weigthed computational graph')
+    plt.plot(row['conv'][:, 0], normalize(conv), color='salmon', label='Weigthed computational graph')
 
 
 def get_reference(filename):
