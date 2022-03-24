@@ -3,7 +3,6 @@ from copyreg import pickle
 import os
 import re
 import shutil
-from statistics import mean
 import subprocess
 import sys
 
@@ -14,9 +13,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pickle
-
-
-#TODO: Comparison between functionals
 
 
 parser = argparse.ArgumentParser()
@@ -36,7 +32,10 @@ parser.add_argument('--no_goodvibes', help='Don\'t execute goodvibes. If not -p,
 parser.add_argument('--skip_data', help='Skip data to find the pick wavelenght', default=15, type=int)
 parser.add_argument('-n', '--normalisation', help='Set the normalisation range. Default: [-%(default)s, %(default)s', default=1)
 parser.add_argument('-sh', '--shift', help='Manually set the wavelenght shift in order to match the resulting spectra with the reference', type=float)
-parser.add_argument('--save', help='Save pickle of the graph.', action='store_true')
+parser.add_argument('-gd','--graph_directory', help='Define the directory in which you want to save the files of the graph. Default: %(default)s', default='ecd_graphs')
+
+parser.add_argument('--save', help='Save pickle and csvs of the graph', action='store_true')
+parser.add_argument('--compare', help='Get the graph with the comparison of more functional over the reference. Suggested to give as input file generated with this program. Name for the graph will take filname-dft.txt', action='store_true')
 
 
 args = parser.parse_args()
@@ -44,7 +43,7 @@ args = parser.parse_args()
 FILETOANALYSE = []
 X = np.linspace(args.initial_lambda-100, args.final_lambda+100, (args.final_lambda-args.initial_lambda)*100**args.definition)
 
-columns = ['fln', 'pop', 'R', 'l', 'conv']
+columns = ['fln', 'pop', 'R', 'l', 'conv', 't']
 DF = pd.DataFrame(columns=columns)
 
 
@@ -55,6 +54,17 @@ class InputError(Exception):
 if args.pop:
     if not 0.99 < sum(args.pop) < 1.01:
         print(f'Sum population = {sum(args.pop)*100}%. {"Not complete population give" if sum(args.pop) < 0.99 else "Too much population given"}. Prociding with unputted populations')
+
+
+def get_thoery(filename):
+    with open(filename) as f:
+        fl = f.read()
+    fl = fl.split('----------------------------------------------------------------------')[1]
+    th = fl.strip().split('/')[0].split(')')[1].strip()
+    if not th:
+        th = 'NA'
+    return th
+    
 
 
 def get_rvel(filename:str):
@@ -118,10 +128,15 @@ def get_filename(abs_path):
     return os.path.split(abs_path)[1]
 
 
+def df_row(filename, pop):
+    fl = os.path.split(filename)[1]
+    return [fl, pop , get_rvel(get_absolute_path(fl)), get_wavelenght(get_absolute_path(fl)), None, get_thoery(get_absolute_path(fl)) ]
+
+
 def equalpop():
     with alive_bar(len(FILETOANALYSE), title='Getting λ R(vel) and population for files') as bar:
         for i in FILETOANALYSE:
-            DF.loc[len(DF)] = [get_filename(i), 1/len(FILETOANALYSE), get_rvel(i), get_wavelenght(i), None]
+            DF.loc[len(DF)] = df_row(i.strip('.log'), 1/len(FILETOANALYSE))
             bar()
 
 def get_population():
@@ -129,7 +144,7 @@ def get_population():
     if args.pop:
         with alive_bar(len(FILETOANALYSE), title='Getting λ R(vel) and population for files') as bar:
             for idx, i in enumerate(FILETOANALYSE):
-                DF.loc[len(DF)] = [get_filename(i), args.pop[idx], get_rvel(i), get_wavelenght(i), None]
+                DF.loc[len(DF)] = df_row(i, args.pop[idx])
                 bar()
 
     elif args.no_goodvibes or len(FILETOANALYSE)==1:
@@ -147,7 +162,7 @@ def get_population():
             for i in file[1].split('\n'):
                 if i.strip():
                     j = i.split()
-                    DF.loc[len(DF)] = [j[1], j[9], get_rvel(get_absolute_path(j[1])), get_wavelenght(get_absolute_path(j[1])), None]
+                    DF.loc[len(DF)] = df_row(j[1], j[9])
 
 
 def get_cmd_line(python):
@@ -184,7 +199,7 @@ def weight_plot():
         for index, row in DF.iterrows():
             g = row['conv'][:, 1] * float(row['pop'])
             conv += g
-            plt.plot(row['conv'][:, 0], g, color='gray', alpha=.3, label=(row['fln'].strip('.log').title()[:10]+'...') if len(args.file) > 1 else None)
+            plt.plot(row['conv'][:, 0], g, alpha=.3, label=(row['fln'].strip('.log').title()[:5]+'...-'+row['t']) if len(args.file) > 1 else None)
             bar()
     plt.plot(row['conv'][:, 0], normalize(conv), color='salmon', label='Weigthed computational graph')
 
@@ -197,13 +212,13 @@ def get_reference(filename):
             u_cut = np.argwhere(data[:, 0] == args.final_lambda)[0, 0]
             data = data[l_cut:u_cut, :]
         except IndexError:
-            print('No splice of the set for the file {0} is made'.format(filename))
+            pass
         x, y = data[:, 0], data[:, 1]
         plt.plot(x, normalize(y), color='brown', label='Experimental Graph')
         return data 
     return None
 
-def show_plot():
+def show_plot(compare=False):
     plt.xlabel('Wavelenght [nm]')
     plt.ylabel('Δε')
     plt.title(args.title)
@@ -211,12 +226,26 @@ def show_plot():
     plt.legend(loc='upper center', bbox_to_anchor=(0.5, -.125), fancybox=True, shadow=True, ncol=3)
     plt.tight_layout()
     fig = plt.gcf()
-    if args.save:      
-        with alive_bar(1, title='Saving plot') as bar:      
-            with open('ecd.pickle', 'wb') as f:
+    if args.save and not compare:
+
+        directory = args.graph_directory   
+
+        if os.path.exists(directory):
+            if 'y' in input(f'A directory named {directory} already exists. Existing directory  will be deleted, wanna procede? [y/n]').lower():
+                shutil.rmtree(directory)   
+            else:
+                sys.exit()
+        os.mkdir(directory)
+
+        with alive_bar(1+len(list(DF.iterrows())), title='Saving plot') as bar:      
+            with open(os.path.join(directory, 'ecd.pickle'), 'wb') as f:
                 pickle.dump(fig, f)
             bar()
-        # fig = pickle.load(open('ecd.pickle','rb'))    
+            for index, row in DF.iterrows():
+
+                np.savetxt(os.path.join(directory, f"{row['fln'].strip('.log').title()}-graph-{row['t']}.txt"), row['conv'], newline='\n')
+                bar()
+            
     plt.show()
 
 
@@ -263,10 +292,36 @@ def shift(ref):
 
 
 
+def compare_graphs():
+    gf = {}
+    with alive_bar(len(args.file), title='Loading files') as bar:
+        for i in args.file:
+            dft = i.split('-')[-1].split('.')[0] if  i.split('-')[-2] != 'cam' else 'cam-'+ i.split('-')[-1].split('.')[0]
+            if dft in gf:
+                print(f"\33[1m\33[33mWarnig\33[0m: {dft} is already present in the comparison. Check file {i}")
+            gf[dft] = np.loadtxt(i)
+            bar()
+    with alive_bar(len(args.file), title='Plotting files') as bar:
+        for i in gf:
+            plt.plot(gf[i][:, 0], normalize(gf[i][:, 1]), label=i, alpha=.5)
+            bar()
+    
+    if args.reference:
+        with alive_bar(1, title='Plotting files') as bar:
+            ref = get_reference(args.reference)
+            bar()
+    
+    show_plot(compare=True)
 
 
 
 if __name__ == '__main__':
+
+
+    if args.compare:
+        compare_graphs()
+        sys.exit()
+    
     with alive_bar(len(args.file), title='Splitting files') as bar:
         for i in args.file:
             split_file(i)

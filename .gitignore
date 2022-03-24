@@ -131,3 +131,4 @@ dmypy.json
 # Code stuff
 .vscode/
 tests/
+ecd_graphs/
