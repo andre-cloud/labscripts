@@ -25,7 +25,7 @@ args = parser.parse_args()
 
 
 def calc_rmsd(ref: np.array, conf: np.array, *args, **kwargs):
-    return np.sqrt(1/ref.size * np.linalg.norm(ref-conf))
+    return np.sqrt(1/ref.size) * np.linalg.norm(ref-conf)
 
 
 def align_structures(structures:np.array, indexes=None):
@@ -51,15 +51,15 @@ def rmsd_with_center_mass(ref, file, numbers):
     mass_ref = np.sum(ref*mass, axis=0)/np.sum(mass)
     mass_file = np.sum(file*mass, axis=0)/np.sum(mass)
 
-    dist_rif = np.sqrt(np.sum(np.linalg.norm(ref-mass_ref, axis=1 )**4)/len(ref))
-    dist_file = np.sqrt(np.sum(np.linalg.norm(file-mass_file, axis=1 )**4)/len(ref))
+    dist_rif = np.sqrt(np.sum(np.linalg.norm(ref-mass_ref, axis=1 )**2)/len(ref))
+    dist_file = np.sqrt(np.sum(np.linalg.norm(file-mass_file, axis=1 )**2)/len(ref))
 
     return calc_rmsd(dist_rif, dist_file)
 
 
 def weight_rmsd(ref, file, numbers):
     masses = np.array([pt[i].mass for i in numbers]).T
-    return np.sqrt(np.sum(masses*(np.linalg.norm((file - ref), axis=1))**4)/(len(ref)*np.sum(masses)))
+    return np.sqrt(np.sum(masses*(np.linalg.norm((file - ref), axis=1))**2)/(len(ref)*np.sum(masses)))
     # mass = np.array([masses for _ in range(3)]).T
 
 
