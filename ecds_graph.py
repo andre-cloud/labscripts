@@ -56,14 +56,63 @@ if args.pop:
         print(f'Sum population = {sum(args.pop)*100}%. {"Not complete population give" if sum(args.pop) < 0.99 else "Too much population given"}. Prociding with unputted populations')
 
 
-def get_thoery(filename):
-    with open(filename) as f:
-        fl = f.read()
-    fl = fl.split('----------------------------------------------------------------------')[1]
-    th = fl.strip().split('/')[0].split(')')[1].strip()
-    if not th:
-        th = 'NA'
-    return th
+def get_thoery(file):
+    repeated_theory = 0
+    with open(file) as f:
+        data = f.readlines()
+    level, bs = 'none', 'none'
+
+    for line in data:
+        if line.strip().find('External calculation') > -1:
+            level, bs = 'ext', 'ext'
+            break
+        if '\\Freq\\' in line.strip() and repeated_theory == 0:
+            try:
+                level, bs = (line.strip().split("\\")[4:6])
+                repeated_theory = 1
+            except IndexError:
+                pass
+        elif '|Freq|' in line.strip() and repeated_theory == 0:
+            try:
+                level, bs = (line.strip().split("|")[4:6])
+                repeated_theory = 1
+            except IndexError:
+                pass
+        if '\\SP\\' in line.strip() and repeated_theory == 0:
+            try:
+                level, bs = (line.strip().split("\\")[4:6])
+                repeated_theory = 1
+            except IndexError:
+                pass
+        elif '|SP|' in line.strip() and repeated_theory == 0:
+            try:
+                level, bs = (line.strip().split("|")[4:6])
+                repeated_theory = 1
+            except IndexError:
+                pass
+        if 'DLPNO BASED TRIPLES CORRECTION' in line.strip():
+            level = 'DLPNO-CCSD(T)'
+        if 'Estimated CBS total energy' in line.strip():
+            try:
+                bs = ("Extrapol." + line.strip().split()[4])
+            except IndexError:
+                pass
+        # Remove the restricted R or unrestricted U label
+        if level[0] in ('R', 'U'):
+            level = level[1:]
+        # Remuve the TD FC from level
+        level = level.split('TD')[0]
+        # level = level.strip('')
+    level_of_theory = '_'.join([level, bs])
+    return level_of_theory
+
+    # with open(filename) as f:
+    #     fl = f.read()
+    # fl = fl.split('----------------------------------------------------------------------')[1]
+    # th = fl.strip().split('/')[0].split(')')[1].strip()
+    # if not th:
+    #     th = 'NA'
+    # return th
     
 
 
@@ -129,7 +178,7 @@ def get_filename(abs_path):
 
 
 def df_row(filename, pop):
-    fl = os.path.split(filename)[1]
+    fl = os.path.split(filename)[1].strip('.log')
     return [fl, pop , get_rvel(get_absolute_path(fl)), get_wavelenght(get_absolute_path(fl)), None, get_thoery(get_absolute_path(fl)) ]
 
 
@@ -221,11 +270,15 @@ def get_reference(filename):
 def show_plot(compare=False):
     plt.xlabel('Wavelenght [nm]')
     plt.ylabel('Δε')
-    plt.title(args.title)
+    title = args.title
+    if title == 'ECD graph' and len(set(DF['t'])) == 1:
+        title += ' '+DF['t'][0]
+    plt.title(title)
     plt.xlim([args.initial_lambda, args.final_lambda])
-    plt.legend(loc='upper center', bbox_to_anchor=(0.5, -.125), fancybox=True, shadow=True, ncol=3)
+    plt.legend(loc='upper center', bbox_to_anchor=(0.5, -.125), fancybox=True, shadow=True, ncol=1)
     plt.tight_layout()
     fig = plt.gcf()
+
     if args.save and not compare:
 
         directory = args.graph_directory   
@@ -280,7 +333,7 @@ def shift(ref):
                 x_shifted = row['conv'][:, 0] + shift
                 DF._set_value(index, 'conv', np.hstack((np.array(list([i] for i in x_shifted)), np.array(list([i] for i in row['conv'][:, 1])))))
                 bar()
-        print(f'Plots shifted on average {np.mean(shs)} nm')
+        print(f'Plots shifted on average by {np.mean(shs)} nm')
 
     else:
         with alive_bar(len(list(DF.iterrows())), title='Shifting plots') as bar:
