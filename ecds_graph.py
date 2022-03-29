@@ -1,5 +1,4 @@
 import argparse
-from copyreg import pickle
 import os
 import re
 import shutil
@@ -280,27 +279,39 @@ def show_plot(compare=False):
     fig = plt.gcf()
 
     if args.save and not compare:
+        save_graph(fig)
+    try:       
+        plt.show()
+    except Exception:
+        print('It was impossible to visulaize the graph of these file because you\'re running a non interactive terminal session. Graph is dumped in pickle and png format.')
+        if not args.save:
+            save_graph(fig, png=True)
 
-        directory = args.graph_directory   
 
-        if os.path.exists(directory):
-            if 'y' in input(f'A directory named {directory} already exists. Existing directory  will be deleted, wanna procede? [y/n]').lower():
-                shutil.rmtree(directory)   
-            else:
-                sys.exit()
-        os.mkdir(directory)
+def save_graph(fig, png=False):
+    directory = args.graph_directory   
 
-        with alive_bar(1+len(list(DF.iterrows())), title='Saving plot') as bar:      
-            with open(os.path.join(directory, 'ecd.pickle'), 'wb') as f:
-                pickle.dump(fig, f)
-            bar()
+    if os.path.exists(directory):
+        if 'y' in input(f'A directory named {directory} already exists. Existing directory  will be deleted, wanna procede? [y/n]').lower():
+            shutil.rmtree(directory)   
+        else:
+            sys.exit()
+    os.mkdir(directory)
+
+    ln = 1+len(list(DF.iterrows())) if not png else 2
+
+    with alive_bar(ln, title='Saving plot') as bar:      
+        with open(os.path.join(directory, 'ecd.pickle'), 'wb') as f:
+            pickle.dump(fig, f)
+        bar()
+        if not png:
             for index, row in DF.iterrows():
 
                 np.savetxt(os.path.join(directory, f"{row['fln'].strip('.log').title()}-graph-{row['t']}.txt"), row['conv'], newline='\n')
                 bar()
-            
-    plt.show()
-
+        else:
+            plt.savefig(os.path.join(directory, 'ecd.png'), dpi=700)
+            bar()
 
 def x_max(ref, value=False):
     idx = args.skip_data
