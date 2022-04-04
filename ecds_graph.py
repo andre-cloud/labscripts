@@ -23,13 +23,13 @@ parser.add_argument('-pv', '--python_version', help='Set the python command. Def
 parser.add_argument('-il', '--initial_lambda', help='Inital wavelenght. Default: %(default)s nm', default=200, type=int)
 parser.add_argument('-fl', '--final_lambda', help='Final wavelenght. Default: %(default)s nm', default=600, type=int)
 parser.add_argument('-def', '--definition', help='Definition of the spectra. Add more points on which calculate the absortion. (MAX-MIN)*100^d. Default: %(default)s', default=2, type=float)
-parser.add_argument('-si', '--sigma', help='Peak width. Defaul %(default)s', default=10, type=float)
+parser.add_argument('-si', '--sigma', help='Peak width, considered as dispertion σ for a gaussian curve. Defaul %(default)s nm', default=20, type=float)
 parser.add_argument('-p', '--pop', help='Define the population of the conformers indicated. Use with caution and be sure of the order. MAX population = 1', nargs='+', type=float)
 parser.add_argument('-r', '--reference', help='File xy of the ECD plot sperimental')
 parser.add_argument('-t', '--title', help='Set the title of the final plot. Default %(default)s', default='ECD graph')
-parser.add_argument('--no_goodvibes', help='Don\'t execute goodvibes. If not -p, equal population will be considered', action='store_true')
+parser.add_argument('--goodvibes', help='Execute goodvibes. If not -p, equal population will be considered', action='store_true')
 parser.add_argument('--skip_data', help='Skip data to find the pick wavelenght', default=15, type=int)
-parser.add_argument('-n', '--normalisation', help='Set the normalisation range. Default: [-%(default)s, %(default)s', default=1)
+parser.add_argument('-n', '--normalisation', help='Set the normalisation range. Default: [-%(default)s, %(default)s]', default=1)
 parser.add_argument('-sh', '--shift', help='Manually set the wavelenght shift in order to match the resulting spectra with the reference', type=float)
 parser.add_argument('-gd','--graph_directory', help='Define the directory in which you want to save the files of the graph. Default: %(default)s', default='ecd_graphs')
 
@@ -56,52 +56,58 @@ if args.pop:
 
 
 def get_thoery(file):
-    repeated_theory = 0
-    with open(file) as f:
-        data = f.readlines()
-    level, bs = 'none', 'none'
 
-    for line in data:
-        if line.strip().find('External calculation') > -1:
-            level, bs = 'ext', 'ext'
-            break
-        if '\\Freq\\' in line.strip() and repeated_theory == 0:
-            try:
-                level, bs = (line.strip().split("\\")[4:6])
-                repeated_theory = 1
-            except IndexError:
-                pass
-        elif '|Freq|' in line.strip() and repeated_theory == 0:
-            try:
-                level, bs = (line.strip().split("|")[4:6])
-                repeated_theory = 1
-            except IndexError:
-                pass
-        if '\\SP\\' in line.strip() and repeated_theory == 0:
-            try:
-                level, bs = (line.strip().split("\\")[4:6])
-                repeated_theory = 1
-            except IndexError:
-                pass
-        elif '|SP|' in line.strip() and repeated_theory == 0:
-            try:
-                level, bs = (line.strip().split("|")[4:6])
-                repeated_theory = 1
-            except IndexError:
-                pass
-        if 'DLPNO BASED TRIPLES CORRECTION' in line.strip():
-            level = 'DLPNO-CCSD(T)'
-        if 'Estimated CBS total energy' in line.strip():
-            try:
-                bs = ("Extrapol." + line.strip().split()[4])
-            except IndexError:
-                pass
-        # Remove the restricted R or unrestricted U label
-        if level[0] in ('R', 'U'):
-            level = level[1:]
-        # Remuve the TD FC from level
-        level = level.split('TD')[0]
-        # level = level.strip('')
+    data = cclib.io.ccread(file)
+    level = data.metadata['functional']
+    bs = data.metadata['basis_set']
+
+    if not level or not bs:
+        repeated_theory = 0
+        with open(file) as f:
+            data = f.readlines()
+        level, bs = 'none', 'none'
+
+        for line in data:
+            if line.strip().find('External calculation') > -1:
+                level, bs = 'ext', 'ext'
+                break
+            if '\\Freq\\' in line.strip() and repeated_theory == 0:
+                try:
+                    level, bs = (line.strip().split("\\")[4:6])
+                    repeated_theory = 1
+                except IndexError:
+                    pass
+            elif '|Freq|' in line.strip() and repeated_theory == 0:
+                try:
+                    level, bs = (line.strip().split("|")[4:6])
+                    repeated_theory = 1
+                except IndexError:
+                    pass
+            if '\\SP\\' in line.strip() and repeated_theory == 0:
+                try:
+                    level, bs = (line.strip().split("\\")[4:6])
+                    repeated_theory = 1
+                except IndexError:
+                    pass
+            elif '|SP|' in line.strip() and repeated_theory == 0:
+                try:
+                    level, bs = (line.strip().split("|")[4:6])
+                    repeated_theory = 1
+                except IndexError:
+                    pass
+            if 'DLPNO BASED TRIPLES CORRECTION' in line.strip():
+                level = 'DLPNO-CCSD(T)'
+            if 'Estimated CBS total energy' in line.strip():
+                try:
+                    bs = ("Extrapol." + line.strip().split()[4])
+                except IndexError:
+                    pass
+            # Remove the restricted R or unrestricted U label
+            if level[0] in ('R', 'U'):
+                level = level[1:]
+            # Remuve the TD FC from level
+            level = level.split('TD')[0]
+            # level = level.strip('')
     level_of_theory = '_'.join([level, bs])
     return level_of_theory
 
@@ -195,9 +201,19 @@ def get_population():
                 DF.loc[len(DF)] = df_row(i, args.pop[idx])
                 bar()
 
-    elif args.no_goodvibes or len(FILETOANALYSE)==1:
+    elif len(FILETOANALYSE)==1:
         equalpop()
 
+    elif not args.goodvibes:
+        print('''
+        Pass the population of each conformer here below. Remember that the max population is 1.
+
+        ''')
+        for i in FILETOANALYSE:
+            p = float(input(f'- {i}   : '))
+            DF.loc[len(DF)] = df_row(i, p)
+        print()
+            
     else:
         p = subprocess.Popen(get_cmd_line(args.python_version).split())
         p.wait()
@@ -360,9 +376,12 @@ def compare_graphs():
     gf = {}
     with alive_bar(len(args.file), title='Loading files') as bar:
         for i in args.file:
-            dft = i.split('-')[-1].split('.')[0] if  i.split('-')[-2] != 'cam' else 'cam-'+ i.split('-')[-1].split('.')[0]
+            try:
+                dft = i.split('-')[-1].split('.')[0] if  i.split('-')[-2] != 'cam' else 'cam-'+ i.split('-')[-1].split('.')[0]
+            except Exception:
+                dft = i.strip('.log')
             if dft in gf:
-                print(f"\33[1m\33[33mWarnig\33[0m: {dft} is already present in the comparison. Check file {i}")
+                print(f"\33[1m\33[33mWarnig\33[0m: {dft} is already present in the comparison, and this overwrite the graph. Check file {i}")
             gf[dft] = np.loadtxt(i)
             bar()
     with alive_bar(len(args.file), title='Plotting files') as bar:
