@@ -32,6 +32,7 @@ parser.add_argument('--skip_data', help='Skip data to find the pick wavelenght',
 parser.add_argument('-n', '--normalisation', help='Set the normalisation range. Default: [-%(default)s, %(default)s]', default=1)
 parser.add_argument('-sh', '--shift', help='Manually set the wavelenght shift in order to match the resulting spectra with the reference', type=float)
 parser.add_argument('-gd','--graph_directory', help='Define the directory in which you want to save the files of the graph. Default: %(default)s', default='ecd_graphs')
+parser.add_argument('-lg','--legend', help='Show the legend nito the plot', action='store_true')
 
 parser.add_argument('--save', help='Save pickle and csvs of the graph', action='store_true')
 parser.add_argument('--compare', help='Get the graph with the comparison of more functional over the reference. Suggested to give as input file generated with this program. Name for the graph will take filname-dft.txt', action='store_true')
@@ -285,6 +286,7 @@ def weight_plot():
             conv += g
             plt.plot(row['conv'][:, 0], g, alpha=.3, label=(row['fln'].strip('.log').title()[:5]+'...-'+row['t']) if len(args.file) > 1 else None)
             bar()
+
     plt.plot(row['conv'][:, 0], normalize(conv), color='salmon', label='Weigthed computational graph')
 
 
@@ -310,7 +312,8 @@ def show_plot(compare=False):
         title += ' '+DF['t'][0]
     plt.title(title)
     plt.xlim([args.initial_lambda, args.final_lambda])
-    plt.legend(loc='upper center', bbox_to_anchor=(0.5, -.125), fancybox=True, shadow=True, ncol=1)
+    if args.legend:
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, -.125), fancybox=True, shadow=True)
     plt.tight_layout()
     fig = plt.gcf()
 
