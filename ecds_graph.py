@@ -35,6 +35,7 @@ parser.add_argument('-gd','--graph_directory', help='Define the directory in whi
 parser.add_argument('-lg','--legend', help='Show the legend nito the plot', action='store_true')
 parser.add_argument('-sc','--show_conformers', help='Show all the plots of all conformers passed', action='store_true')
 parser.add_argument('-cnw','--confs_not_weighted', help='Show all the plots of all conformers not weighted', action='store_true')
+parser.add_argument('-sw','--shift_weighted', help='define the nm for the shift of the weighted plot', default=0, type=float)
 
 
 parser.add_argument('--save', help='Save pickle and csvs of the graph', action='store_true')
@@ -45,7 +46,7 @@ args = parser.parse_args()
 
 FILETOANALYSE = []
 X = np.linspace(args.initial_lambda-100, args.final_lambda+100, int((args.final_lambda-args.initial_lambda)*10**args.definition))
-gb = {'y_tot': None}
+gb = {'y_tot': None, 'x': X}
 
 columns = ['fln', 'pop', 'R', 'l', 'conv', 't']
 DF = pd.DataFrame(columns=columns)
@@ -269,7 +270,7 @@ def weight_plot():
             conv += g
             y = g if not args.confs_not_weighted else row['conv'][:, 1]
             if args.show_conformers:
-                plt.plot(row['conv'][:, 0], y, alpha=.3, label=(row['fln'].strip('.log').title()[:5]+'...-'+row['t']) if len(args.file) > 1 else None)
+                plt.plot(row['conv'][:, 0], y, alpha=.3, label=(row['fln'].strip('.log').title()+'-'+row['t']) if len(args.file) > 1 else None)
             bar()
 
     # gb['y_tot'] = normalize(conv)
@@ -360,17 +361,18 @@ def x_max(ref, value=False):
 def shift(ref):
 
     shs = []
+    su = np.sum(DF["pop"])
     if not args.shift:
         x_ref, sign = x_max(ref)
         with alive_bar(len(list(DF.iterrows())), title='Shifting plots') as bar:
             for index, row in DF.iterrows():
                 x_row = x_max(row['conv'], sign)
                 shift = x_ref - x_row
-                shs.append(shift*row['pop'])
+                shs.append(shift*row['pop']/su)
                 x_shifted = row['conv'][:, 0] + shift
                 DF._set_value(index, 'conv', np.hstack((np.array(list([i] for i in x_shifted)), np.array(list([i] for i in row['conv'][:, 1])))))
                 bar()
-        print(f'Plots shifted on average (weighted by population) by {np.round(np.sum(np.array(shs))/np.sum(DF["pop"]), 4)} nm')
+        print(f'Plots shifted on average (weighted by population) by {np.round(np.sum(np.array(shs)), 4)} nm')
     else:
         with alive_bar(len(list(DF.iterrows())), title='Shifting plots') as bar:
             for index, row in DF.iterrows():
@@ -379,7 +381,9 @@ def shift(ref):
                 bar()
         print(f'Every plot is shifted by {args.shift} nm, as asked by the user.')
 
-    x = (X+np.sum(shs)/np.sum(DF['pop'])) if shs != [] else X+args.shift if args.shift else X
+    if args.shift_weighted != 0: print(f'Weighted plot will be shifted by {args.shift_weighted} nm, instead')
+
+    x = (X+args.shift_weighted) if args.shift_weighted != 0 else (X+np.sum(shs)) if shs != [] else X+args.shift if args.shift else X
     gb['x'] = x
 
 
