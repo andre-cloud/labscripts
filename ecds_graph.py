@@ -257,17 +257,35 @@ def convolution():
         shift(ref)
 
 def weight_plot():
+    # conv = 0
+    # with alive_bar(len(list(DF.iterrows()))+1, title='Weighting plots') as bar:
+    #     for index, row in DF.iterrows():
+    #         g = row['conv'][:, 1] * float(row['pop'])
+    #         # conv += g
+    #         plt.plot(row['conv'][:, 0], g, alpha=.3, label=(row['fln'].strip('.log').title()[:5]+'...-'+row['t']) if len(args.file) > 1 else None)
+    #         bar()
+
+    #     a = None
+    #     for index, i in DF['conv'].iteritems():
+    #         if a is None:
+    #             a = pd.concat(map(pd.DataFrame, [i.T, DF['conv'][index+1].T])).groupby([0,1]).sum()
+    #             continue
+    #         if index == 2: continue
+    #         a = pd.concat(map(pd.DataFrame, [a, i.T])).groupby([0,1]).sum()
+        
+    #     y, x = a.to_numpy()
+    #     # a = pd.concat(map(pd.DataFrame,[i.T for index, i in DF['conv'].iteritems()])).groupby(0).sum()
+    #     bar()
+    # plt.plot(x, normalize(y), color='salmon', label='Weigthed computational graph')
+
     conv = 0
-    with alive_bar(len(list(DF.iterrows()))+1, title='Weighting plots') as bar:
+    with alive_bar(len(list(DF.iterrows())), title='Weighting plots') as bar:
         for index, row in DF.iterrows():
             g = row['conv'][:, 1] * float(row['pop'])
-            # conv += g
+            conv += g
             plt.plot(row['conv'][:, 0], g, alpha=.3, label=(row['fln'].strip('.log').title()[:5]+'...-'+row['t']) if len(args.file) > 1 else None)
             bar()
-        pd.concat(map(pd.DataFrame,[i.T for i in DF['conv']])).groupby(0).sum().plot()
-        bar()
-    # sys.exit()
-    # plt.plot(a, normalize(conv), color='salmon', label='Weigthed computational graph')
+    plt.plot(row['conv'][:, 0], normalize(conv), color='salmon', label='Weigthed computational graph')
 
 
 def get_reference(filename):
