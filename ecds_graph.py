@@ -22,7 +22,7 @@ parser.add_argument('-solv', '--solvation', help='Solvent used in the calculatio
 parser.add_argument('-pv', '--python_version', help='Set the python command. Default: "%(default)s"', default='python')
 parser.add_argument('-il', '--initial_lambda', help='Inital wavelenght. Default: %(default)s nm', default=200, type=int)
 parser.add_argument('-fl', '--final_lambda', help='Final wavelenght. Default: %(default)s nm', default=600, type=int)
-parser.add_argument('-def', '--definition', help='Definition of the spectra. Add more points on which calculate the absortion. (MAX-MIN)*100^d. Default: %(default)s', default=2, type=float)
+parser.add_argument('-def', '--definition', help='Definition of the spectra. Add more points on which calculate the absortion. (MAX-MIN)*10^d. Default: %(default)s', default=2, type=float)
 parser.add_argument('-si', '--sigma', help='Peak width, considered as dispertion σ for a gaussian curve. Defaul %(default)s nm', default=20, type=float)
 parser.add_argument('-p', '--pop', help='Define the population of the conformers indicated. Use with caution and be sure of the order. MAX population = 1', nargs='+', type=float)
 parser.add_argument('-r', '--reference', help='File xy of the ECD plot sperimental')
@@ -33,6 +33,9 @@ parser.add_argument('-n', '--normalisation', help='Set the normalisation range. 
 parser.add_argument('-sh', '--shift', help='Manually set the wavelenght shift in order to match the resulting spectra with the reference', type=float)
 parser.add_argument('-gd','--graph_directory', help='Define the directory in which you want to save the files of the graph. Default: %(default)s', default='ecd_graphs')
 parser.add_argument('-lg','--legend', help='Show the legend nito the plot', action='store_true')
+parser.add_argument('-sc','--show_conformers', help='Show all the plots of all conformers passed', action='store_true')
+parser.add_argument('-cnw','--confs_not_weighted', help='Show all the plots of all conformers not weighted', action='store_true')
+
 
 parser.add_argument('--save', help='Save pickle and csvs of the graph', action='store_true')
 parser.add_argument('--compare', help='Get the graph with the comparison of more functional over the reference. Suggested to give as input file generated with this program. Name for the graph will take filname-dft.txt', action='store_true')
@@ -41,7 +44,8 @@ parser.add_argument('--compare', help='Get the graph with the comparison of more
 args = parser.parse_args()
 
 FILETOANALYSE = []
-X = np.linspace(args.initial_lambda-100, args.final_lambda+100, (args.final_lambda-args.initial_lambda)*100**args.definition)
+X = np.linspace(args.initial_lambda-100, args.final_lambda+100, int((args.final_lambda-args.initial_lambda)*10**args.definition))
+gb = {'y_tot': None}
 
 columns = ['fln', 'pop', 'R', 'l', 'conv', 't']
 DF = pd.DataFrame(columns=columns)
@@ -258,36 +262,18 @@ def convolution():
         shift(ref)
 
 def weight_plot():
-    # conv = 0
-    # with alive_bar(len(list(DF.iterrows()))+1, title='Weighting plots') as bar:
-    #     for index, row in DF.iterrows():
-    #         g = row['conv'][:, 1] * float(row['pop'])
-    #         # conv += g
-    #         plt.plot(row['conv'][:, 0], g, alpha=.3, label=(row['fln'].strip('.log').title()[:5]+'...-'+row['t']) if len(args.file) > 1 else None)
-    #         bar()
-
-    #     a = None
-    #     for index, i in DF['conv'].iteritems():
-    #         if a is None:
-    #             a = pd.concat(map(pd.DataFrame, [i.T, DF['conv'][index+1].T])).groupby([0,1]).sum()
-    #             continue
-    #         if index == 2: continue
-    #         a = pd.concat(map(pd.DataFrame, [a, i.T])).groupby([0,1]).sum()
-        
-    #     y, x = a.to_numpy()
-    #     # a = pd.concat(map(pd.DataFrame,[i.T for index, i in DF['conv'].iteritems()])).groupby(0).sum()
-    #     bar()
-    # plt.plot(x, normalize(y), color='salmon', label='Weigthed computational graph')
-
     conv = 0
     with alive_bar(len(list(DF.iterrows())), title='Weighting plots') as bar:
         for index, row in DF.iterrows():
             g = row['conv'][:, 1] * float(row['pop'])
             conv += g
-            plt.plot(row['conv'][:, 0], g, alpha=.3, label=(row['fln'].strip('.log').title()[:5]+'...-'+row['t']) if len(args.file) > 1 else None)
+            y = g if not args.confs_not_weighted else row['conv'][:, 1]
+            if args.show_conformers:
+                plt.plot(row['conv'][:, 0], y, alpha=.3, label=(row['fln'].strip('.log').title()[:5]+'...-'+row['t']) if len(args.file) > 1 else None)
             bar()
 
-    plt.plot(row['conv'][:, 0], normalize(conv), color='salmon', label='Weigthed computational graph')
+    # gb['y_tot'] = normalize(conv)
+    plt.plot(gb['x'], normalize(conv), color='salmon', label='Weigthed computational graph')
 
 
 def get_reference(filename):
@@ -372,19 +358,19 @@ def x_max(ref, value=False):
 
         
 def shift(ref):
+
+    shs = []
     if not args.shift:
-        shs = []
         x_ref, sign = x_max(ref)
         with alive_bar(len(list(DF.iterrows())), title='Shifting plots') as bar:
             for index, row in DF.iterrows():
                 x_row = x_max(row['conv'], sign)
                 shift = x_ref - x_row
-                shs.append(shift)
+                shs.append(shift*row['pop'])
                 x_shifted = row['conv'][:, 0] + shift
                 DF._set_value(index, 'conv', np.hstack((np.array(list([i] for i in x_shifted)), np.array(list([i] for i in row['conv'][:, 1])))))
                 bar()
-        print(f'Plots shifted on average by {np.mean(shs)} nm')
-
+        print(f'Plots shifted on average (weighted by population) by {np.round(np.sum(np.array(shs))/np.sum(DF["pop"]), 4)} nm')
     else:
         with alive_bar(len(list(DF.iterrows())), title='Shifting plots') as bar:
             for index, row in DF.iterrows():
@@ -393,6 +379,10 @@ def shift(ref):
                 bar()
         print(f'Every plot is shifted by {args.shift} nm, as asked by the user.')
 
+    x = (X+np.sum(shs)/np.sum(DF['pop'])) if shs != [] else X+args.shift if args.shift else X
+    gb['x'] = x
+
+
 
 
 def compare_graphs():
@@ -400,7 +390,7 @@ def compare_graphs():
     with alive_bar(len(args.file), title='Loading files') as bar:
         for i in args.file:
             try:
-                dft = i.split('-')[-1].split('.')[0] if  i.split('-')[-2] != 'cam' else 'cam-'+ i.split('-')[-1].split('.')[0]
+                dft = i.split('-')[-1].split('.')[0] if not 'cam' in i else 'cam-'+ i.split('-')[-1].split('.')[0]
             except Exception:
                 dft = i.strip('.log')
             if dft in gf:
