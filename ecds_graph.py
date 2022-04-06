@@ -63,11 +63,11 @@ if args.pop:
 
 def get_thoery(file):
 
-    data = cclib.io.ccread(file)
-    level = data.metadata['functional']
-    bs = data.metadata['basis_set']
-
-    if not level or not bs:
+    try:
+        data = cclib.io.ccread(file)
+        level = data.metadata['functional']
+        bs = data.metadata['basis_set']
+    except:
         repeated_theory = 0
         with open(file) as f:
             data = f.readlines()
@@ -131,25 +131,43 @@ def get_rvel(filename:str):
     
     with open(filename) as f:
         fl = f.read()
-    if re.findall(' <0|del|b> * <b|rxdel|0> + <0|del|b> * <b|delr+rdel|0>', fl) == ['del']:
-        raise InputError(f'File {filename} it\'s not a TD-DFT calculation. Please check the input and re-run the code.')
-    fl = fl.split(' <0|del|b> * <b|rxdel|0> + <0|del|b> * <b|delr+rdel|0>')[-1]
-    fl = fl.split(' 1/2[<0|r|b>*<b|rxdel|0> + (<0|rxdel|b>*<b|r|0>)*]')[0]
-    fl = fl.split('\n')[3:]
-    return np.array([float(i.split()[4]) for i in fl if i])
+    if 'O   R   C   A' not in fl:
+        if re.findall(' <0|del|b> * <b|rxdel|0> + <0|del|b> * <b|delr+rdel|0>', fl) == ['del']:
+            raise InputError(f'File {filename} it\'s not a TD-DFT calculation. Please check the input and re-run the code.')
+        fl = fl.split(' <0|del|b> * <b|rxdel|0> + <0|del|b> * <b|delr+rdel|0>')[-1]
+        fl = fl.split(' 1/2[<0|r|b>*<b|rxdel|0> + (<0|rxdel|b>*<b|r|0>)*]')[0]
+        fl = fl.split('\n')[3:]
+        r = np.array([float(i.split()[4]) for i in fl if i])
+        return r
+    else:
+        if re.findall('         CD SPECTRUM VIA TRANSITION VELOCITY DIPOLE MOMENTS        ', fl) == ['del']:
+            raise InputError(f'File {filename} it\'s not a TD-DFT calculation. Please check the input and re-run the code.')
+        fl = fl.split('CD SPECTRUM VIA TRANSITION VELOCITY DIPOLE MOMENTS')[1]
+        fl = fl.split('Total run time')[0]
+        fl = fl.split('\n')[5:]
+        return np.array([float(i.split()[3]) for i in fl if i])
+
 
 def get_wavelenght(filename):
     with open(filename) as f:
         fl = f.read()
-    if re.findall('Excitation energies and oscillator strengths', fl) == ['del']:
-        raise InputError(f'File {filename} it\'s not a TD-DFT calculation. Please check the input and re-run the code.')
-    fl = fl.split('Excitation energies and oscillator strengths')[-1]
-    fl = fl.split('Population analysis using the SCF density.')[0]
-    l = []
-    for i in fl.split('\n'):
-        if 'Excited State' in i:
-            l.append(float(i.split()[6].strip()))
-    return l
+    if 'O   R   C   A' not in fl:
+        if re.findall('Excitation energies and oscillator strengths', fl) == ['del']:
+            raise InputError(f'File {filename} it\'s not a TD-DFT calculation. Please check the input and re-run the code.')
+        fl = fl.split('Excitation energies and oscillator strengths')[-1]
+        fl = fl.split('Population analysis using the SCF density.')[0]
+        l = []
+        for i in fl.split('\n'):
+            if 'Excited State' in i:
+                l.append(float(i.split()[6].strip()))
+        return l
+    else:
+        if re.findall('CD SPECTRUM VIA TRANSITION VELOCITY DIPOLE MOMENTS', fl) == ['del']:
+            raise InputError(f'File {filename} it\'s not a TD-DFT calculation. Please check the input and re-run the code.')
+        fl = fl.split('CD SPECTRUM VIA TRANSITION VELOCITY DIPOLE MOMENTS')[1]
+        fl = fl.split('Total run time')[0]
+        fl = fl.split('\n')[5:]
+        return np.array([float(i.split()[2]) for i in fl if i])
 
    
 
