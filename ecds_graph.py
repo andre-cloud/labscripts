@@ -35,7 +35,8 @@ parser.add_argument('-gd','--graph_directory', help='Define the directory in whi
 parser.add_argument('-lg','--legend', help='Show the legend nito the plot', action='store_true')
 parser.add_argument('-sc','--show_conformers', help='Show all the plots of all conformers passed', action='store_true')
 parser.add_argument('-cnw','--confs_not_weighted', help='Show all the plots of all conformers not weighted', action='store_true')
-parser.add_argument('-sw','--shift_weighted', help='define the nm for the shift of the weighted plot', default=0, type=float)
+parser.add_argument('-sw','--shift_weighted', help='Define the nm for the shift of the weighted plot', default=0, type=float)
+parser.add_argument('-nw','--no_weighted', help='Do not show weighted plot on the graph. Use this for benchmarks or comparison.', action='store_true')
 
 
 parser.add_argument('--save', help='Save pickle and csvs of the graph', action='store_true')
@@ -288,11 +289,13 @@ def weight_plot():
             conv += g
             y = g if not args.confs_not_weighted else row['conv'][:, 1]
             if args.show_conformers:
-                plt.plot(row['conv'][:, 0], y, alpha=.3, label=(row['fln'].strip('.log').title()+'-'+row['t']) if len(args.file) > 1 else None)
+                a = 0.3 if not args.no_weighted else 1
+                plt.plot(row['conv'][:, 0], y, alpha=a, label=(row['fln'].strip('.log').title()+'-'+row['t']) if len(args.file) > 1 else None)
             bar()
 
     # gb['y_tot'] = normalize(conv)
-    plt.plot(gb['x'], normalize(conv), color='salmon', label='Weigthed computational graph')
+    if not args.no_weighted:
+        plt.plot(gb['x'], normalize(conv), color='salmon', label='Weigthed computational graph')
 
 
 def get_reference(filename):
