@@ -1,4 +1,5 @@
 import argparse
+from ast import pattern
 import os
 import re
 import shutil
@@ -127,6 +128,12 @@ def get_thoery(file):
     # return th
     
 
+def get_orca_pattern(file):
+    patterns = ['CD SPECTRUM VIA TRANSITION VELOCITY DIPOLE MOMENTS', 'CD SPECTRUM']
+    for i in patterns:
+        if re.findall(i, file):
+            return i
+
 
 def get_rvel(filename:str):
     
@@ -141,9 +148,10 @@ def get_rvel(filename:str):
         r = np.array([float(i.split()[4]) for i in fl if i])
         return r
     else:
-        if re.findall('         CD SPECTRUM VIA TRANSITION VELOCITY DIPOLE MOMENTS        ', fl) == ['del']:
+        pt = get_orca_pattern(fl)
+        if re.findall(pt, fl) == ['del']:
             raise InputError(f'File {filename} it\'s not a TD-DFT calculation. Please check the input and re-run the code.')
-        fl = fl.split('CD SPECTRUM VIA TRANSITION VELOCITY DIPOLE MOMENTS')[1]
+        fl = fl.split(pt)[1]
         fl = fl.split('Total run time')[0]
         fl = fl.split('\n')[5:]
         return np.array([float(i.split()[3]) for i in fl if i])
@@ -163,9 +171,10 @@ def get_wavelenght(filename):
                 l.append(float(i.split()[6].strip()))
         return l
     else:
-        if re.findall('CD SPECTRUM VIA TRANSITION VELOCITY DIPOLE MOMENTS', fl) == ['del']:
+        pt = get_orca_pattern(fl)
+        if re.findall(pt, fl) == ['del']:
             raise InputError(f'File {filename} it\'s not a TD-DFT calculation. Please check the input and re-run the code.')
-        fl = fl.split('CD SPECTRUM VIA TRANSITION VELOCITY DIPOLE MOMENTS')[1]
+        fl = fl.split(pt)[1]
         fl = fl.split('Total run time')[0]
         fl = fl.split('\n')[5:]
         return np.array([float(i.split()[2]) for i in fl if i])
