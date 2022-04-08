@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import time
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-f', '--file', help='ORCA output file')
+parser.add_argument('file', help='ORCA output file')
 parser.add_argument('-s', '--starting_index', default=0, type=int)
 parser.add_argument('-e', '--ending_index', default=-1, type=int)
 parser.add_argument('-o', '--output', type=str, default='graphs', help='Specify the filename (w\out the extention) in which save the output graph')
@@ -11,13 +11,13 @@ parser.add_argument('-sl', '--silent', action='store_true', default=False)
 
 args = parser.parse_args()
 
-
 GRAPHS = ('Energy change', 'RMS gradient', 'MAX gradient', 'RMS step', 'MAX step')
 
 def get_energies(file):
     with open(file) as f:
         lines = [i for i in f.readlines()]
     flag = False
+    opt = '*** OPTIMIZATION RUN DONE ***' in '\n'.join(lines)
     conv = []
     for i in range(len(lines)):
         if "|Geometry convergence|" in lines[i]:
@@ -30,8 +30,11 @@ def get_energies(file):
             flag = False
 
     print(f'============ LAST ITERATION ({len(conv)-1}) ============\n')
-    print(''.join(conv[-1]))
-    print('===============================================')
+    print('\n'.join([i.strip('\n').strip('          ') for i in conv[-1]]))
+    # print(''.join(conv[-1]).strip('          '))
+    print('\n===============================================')
+    if opt: print('\nOptimization Completed\n')
+    if opt: print('===============================================')
 
     tmp_dict = {idx: [] for idx, _ in enumerate(conv[0])}
     tmp_dict['it'] = [i for i in range(len(conv))]
@@ -47,19 +50,21 @@ def get_graph(conv: dict):
 
     iterations = conv.pop('it')
 
+    e_i = args.ending_index if args.ending_index != -1 else None
     for idx, i in enumerate(GRAPHS, start=1):
         if idx == 1:
             continue
         ax.flat[idx].set(title=i)
-        ax.flat[idx].plot(iterations[args.starting_index : args.ending_index], conv[idx-1][args.starting_index: args.ending_index])
+        ax.flat[idx].plot(iterations[args.starting_index : e_i], conv[idx-1][args.starting_index: e_i])
     for i in ax[0, :]:
         i.remove()
     gs = ax[0, 0].get_gridspec()
     axbig = fig.add_subplot(gs[0, :])
-    if min(conv[0][args.starting_index: args.ending_index]) < 0:
-        axbig.hlines(0, iterations[args.starting_index], iterations[args.ending_index], color='r', alpha=0.2, linestyle='dashed')
+    if min(conv[0][args.starting_index: e_i]) < 0:
+        e_i_q = e_i if e_i else -1
+        axbig.hlines(0, iterations[args.starting_index], iterations[e_i_q], color='r', alpha=0.2, linestyle='dashed')
     axbig.set(title=GRAPHS[0])
-    axbig.plot(iterations[args.starting_index : args.ending_index], conv[0][args.starting_index: args.ending_index])
+    axbig.plot(iterations[args.starting_index : e_i], conv[0][args.starting_index: e_i])
 
 
     plt.tight_layout()

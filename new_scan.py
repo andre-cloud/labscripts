@@ -3,7 +3,6 @@ import os
 import sys
 import shutil
 
-
 from alive_progress import alive_bar
 import cclib
 import matplotlib.pyplot as plt
@@ -13,9 +12,9 @@ import pickle
 parser = argparse.ArgumentParser()
 
 parser.add_argument('file', help='Scan log file(s)', nargs='+')
-parser.add_argument('-thr', '--threshold', help='Energy value below which no maximum can be found (in kcal/mol). Default: %(default)s', default=5)
+parser.add_argument('-thr', '--threshold', help='Energy value below which no maximum can be found (in kcal/mol). Default: %(default)s', default=5, type=float)
 parser.add_argument('-tit', '--title', help='define the title of the graph. Default %(default)s', default='Scan')
-parser.add_argument('-p', '--padding', help='Define the padding of two or more graphs. Default %(default)s', default=10, type=int)
+parser.add_argument('-p', '--padding', help='Define the padding of two or more graphs. Default %(default)s', default=20, type=int)
 parser.add_argument('-xpad', help='Define the x shift of the text for the labels of the peaks. Defaults %(default)s', default=2, type=int)
 parser.add_argument('-ypad', help='Define the y shift of the text for the labels of the peaks. Defaults %(default)s', default=0, type=int)
 parser.add_argument('-tick', '--tick_height', help='Set the height of the ticks for the maximum values. Default %(default)s', default=1.5, type=float)
@@ -43,6 +42,7 @@ def get_scan(filename, i):
     y_max = np.array([y[list(x).index(i)] for i in maxs])
 
     write_max(maxs, y_max, pad=padding, xpad=args.xpad, ypad=args.ypad)
+    plt.plot(x,y+padding, linewidth=0.5, alpha=0.4)
     plt.scatter(x,y+padding, label=os.path.split(filename)[1].strip('.log') if len(args.file)>1 else None)
     plt.scatter(maxs, y_max+padding, alpha=0.4, color='red')
     # plt.plot(x,y+padding, '--', alpha=0.4, )
