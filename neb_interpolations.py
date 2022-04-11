@@ -39,17 +39,19 @@ for file in args.filename:
 
     imags, interpols = parse_file(file)
 
-    for idx, i in enumerate(imags):
-        x, y = i[:, 0], i[:, 1]
-        c = 'gray' if (idx != 0 and idx != len(imags)-1) else 'black' if idx == 0 else 'red'
-        alpha = 0.3 if (idx != 0 and idx != len(imags)-1) else 0.8 if idx == 0 else 1
-        plt.scatter(x, y, color=c, alpha=alpha)
-        
     for idx, i in enumerate(interpols):
         x, y = i[:, 0], i[:, 1]
         c = 'gray' if (idx != 0 and idx != len(interpols)-1) else 'black' if idx == 0 else 'red'
-        alpha = 0.3 if (idx != 0 and idx != len(interpols)-1) else 0.8 if idx == 0 else 1
-        plt.plot(x, y, color=c, alpha=alpha)
+        alpha = 0.1 if (idx != 0 and idx != len(interpols)-1) else 0.8 if idx == 0 else 1
+        w = 0.2 if (idx != 0 and idx != len(interpols)-1) else 0.8 if idx == 0 else 1
+        plt.plot(x, y, color=c, alpha=alpha, linewidth=w)
+        
+    for idx, i in enumerate(imags):
+        x, y = i[:, 0], i[:, 1]
+        c = 'gray' if (idx != 0 and idx != len(imags)-1) else 'black' if idx == 0 else 'red'
+        alpha = 0.15 if (idx != 0 and idx != len(imags)-1) else 0.8 if idx == 0 else 1
+        s = 20 if (idx != 0 and idx != len(interpols)-1) else 30 if idx == 0 else 35
+        plt.scatter(x, y, color=c, alpha=alpha, s=s)
 
 
     plt.title(f'NEB Analysis - {len(imags)} iterations')
