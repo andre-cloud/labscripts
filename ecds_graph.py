@@ -65,11 +65,15 @@ if args.pop:
 
 def get_thoery(file):
 
+    level = None
+    bs = None
     try:
         data = cclib.io.ccread(file)
         level = data.metadata['functional']
         bs = data.metadata['basis_set']
-    except:
+    except: 
+        pass
+    if level == 'none' or bs=='none' or level is None or bs is None:
         repeated_theory = 0
         with open(file) as f:
             data = f.readlines()
@@ -116,6 +120,9 @@ def get_thoery(file):
             # Remuve the TD FC from level
             level = level.split('TD')[0]
             # level = level.strip('')
+        # if level == 'none' or bs == 'none':
+        #     level = input(f'Functional theory level of {file} not found. Please input it: ')
+        #     bs = input(f'Basis set of {file} not found. Please input it: ')
     level_of_theory = '_'.join([level, bs])
     return level_of_theory
 
@@ -182,14 +189,19 @@ def get_wavelenght(filename):
    
 
 def split_file(filename: str):
+    with open(filename) as f:
+        file = f.read()
+    
+    if 'O   R   C   A' in file:
+        FILETOANALYSE.append(filename)
+        return None
+
     head_directory = os.path.split(filename)[0]
     directory = os.path.join(os.getcwd(), head_directory, args.directory)
     if len(args.file)>1:
         directory += '_'+os.path.split(filename)[1].split('.')[0]
 
     
-    with open(filename) as f:
-        file = f.read()
     if len(re.findall('Copyright', file))>1:
         files = file.split('Copyright')
         if os.path.exists(directory):
