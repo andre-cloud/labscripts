@@ -196,13 +196,13 @@ def split_file(filename: str):
         FILETOANALYSE.append(filename)
         return None
 
-    head_directory = os.path.split(filename)[0]
-    directory = os.path.join(os.getcwd(), head_directory, args.directory)
-    if len(args.file)>1:
-        directory += '_'+os.path.split(filename)[1].split('.')[0]
 
     
     if len(re.findall('Copyright', file))>1:
+        head_directory = os.path.split(filename)[0]
+        directory = os.path.join(os.getcwd(), head_directory, args.directory)
+        if len(args.file)>1:
+            directory += '_'+os.path.split(filename)[1].split('.')[0]
         files = file.split('Copyright')
         if os.path.exists(directory):
             if 'y' in input(f'A directory named {directory} already exists. Existing directory will be deleted, wanna procede? [y/n]').lower():
