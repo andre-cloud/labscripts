@@ -18,6 +18,9 @@ parser.add_argument('-p', '--padding', help='Define the padding of two or more g
 parser.add_argument('-xpad', help='Define the x shift of the text for the labels of the peaks. Defaults %(default)s', default=2, type=int)
 parser.add_argument('-ypad', help='Define the y shift of the text for the labels of the peaks. Defaults %(default)s', default=0, type=int)
 parser.add_argument('-tick', '--tick_height', help='Set the height of the ticks for the maximum values. Default %(default)s', default=1.5, type=float)
+parser.add_argument('-nl', '--no_legend', help='Disable the legend on the graph', action='store_true')
+parser.add_argument('-c', '--colors', nargs='+', help='Declaire the colors of the graph')
+
 
 parser.add_argument('--save', help='Save pickle and csvs of the graph', action='store_true')
 parser.add_argument('-gd','--graph_directory', help='Define the directory in which you want to save the files of the graph. Default: %(default)s', default='scan_graph')
@@ -42,9 +45,15 @@ def get_scan(filename, i):
     y_max = np.array([y[list(x).index(i)] for i in maxs])
 
     write_max(maxs, y_max, pad=padding, xpad=args.xpad, ypad=args.ypad)
-    plt.plot(x,y+padding, linewidth=0.5, alpha=0.4)
-    plt.scatter(x,y+padding, label=os.path.split(filename)[1].strip('.log') if len(args.file)>1 else None)
-    plt.scatter(maxs, y_max+padding, alpha=0.4, color='red')
+    if not args.colors:
+        plt.plot(x,y+padding, linewidth=0.5, alpha=0.4)
+        plt.scatter(x,y+padding, label=os.path.split(filename)[1].strip('.log') if len(args.file)>1 else None)
+        plt.scatter(maxs, y_max+padding, alpha=0.4, color='red')
+    else: 
+        plt.plot(x,y+padding, linewidth=0.5, alpha=0.4, color=args.colors[args.file.index(filename)])
+        plt.scatter(x,y+padding, label=os.path.split(filename)[1].strip('.log') if len(args.file)>1 else None, color=args.colors[args.file.index(filename)])
+        plt.scatter(maxs, y_max+padding, alpha=0.4, color='red')
+
     # plt.plot(x,y+padding, '--', alpha=0.4, )
 
     
@@ -69,7 +78,7 @@ def write_max(x,y, pad, xpad, ypad):
 
 
 def show_graph():
-    plt.legend(
+    if not args.no_legend: plt.legend(
         loc='upper center', bbox_to_anchor=(0.5, -.125), fancybox=True, shadow=True, ncol=3
     )
     plt.ylim(bottom=0)
