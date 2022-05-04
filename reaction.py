@@ -11,7 +11,7 @@ import sys
 
 Path = mpath.Path
 fig, ax = plt.subplots()
-legend = True
+
 newax_text_list = []
 leg_text = []
 
@@ -24,7 +24,7 @@ class Interpreter:
         for idx, data in enumerate(list(self.pes)):
             create_path(data, self.graph_prm['colors'][idx], self.graph_prm['label'][idx])
             x_labels(self.labels[idx], self.graph_prm['colors'][idx])
-        show_graph()
+        show_graph(legend=True if self.graph_prm['legend'][0].lower() == 'true' else False)
 
 
     
@@ -96,7 +96,7 @@ def x_labels(x_label, color):
         newax[i].spines['bottom'].set_visible(False)
 
 
-def show_graph(save=False):
+def show_graph(legend, save=False):
     ax.set_title("Reaction Profile")
     ax.set_ylabel(r"$G_{rel}$ (kcal / mol)")
     plt.minorticks_on()

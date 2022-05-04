@@ -1,12 +1,11 @@
 # PES
-0,20.51424317,-19.53928088
+1.140938682,25.01185834,0,20.65235812,1.140938682
 
 
 # Labels
-Pre,TS,Post
-Pre,TS,Post
+p-Sa, Cis, p-Ra, Trans, p-Sa
 
 # graph
-label : R,Sa, S,Sa
+label : Barrier 
 colors : salmon, brown
-legend : True
+legend : False
