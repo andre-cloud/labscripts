@@ -24,7 +24,8 @@ class Interpreter:
         for idx, data in enumerate(list(self.pes)):
             create_path(data, self.graph_prm['colors'][idx], self.graph_prm['label'][idx])
             x_labels(self.labels[idx], self.graph_prm['colors'][idx])
-        show_graph(legend=True if self.graph_prm['legend'][0].lower() == 'true' else False)
+        show_graph(legend=True if self.graph_prm['legend'][0].lower() == 'true' else False,
+        save=True if self.graph_prm['save'][0].lower() == 'true' else False, title=self.graph_prm['title'][0])
 
 
     
@@ -39,7 +40,7 @@ class Interpreter:
         self.pes = np.array(pes, dtype='float64')
 
 
-        self.graph_prm = {i.split(' : ')[0]:[j for j in i.split(' : ')[1].split(', ')] for i in graph_prm if i}
+        self.graph_prm = {i.split(' : ')[0].lower():[j for j in i.split(' : ')[1].split(', ')] for i in graph_prm if i}
 
         if 'color' not in self.graph_prm: self.graph_prm['color'] = ['k'] * len(self.pes)
 
@@ -96,8 +97,8 @@ def x_labels(x_label, color):
         newax[i].spines['bottom'].set_visible(False)
 
 
-def show_graph(legend, save=False):
-    ax.set_title("Reaction Profile")
+def show_graph(legend, title, save=False):
+    ax.set_title(title)
     ax.set_ylabel(r"$G_{rel}$ (kcal / mol)")
     plt.minorticks_on()
 
@@ -109,7 +110,7 @@ def show_graph(legend, save=False):
         plt.legend(handles=leg_text)
     plt.tight_layout()
     if save:
-        with open('ecd.pickle', 'wb') as f:
+        with open('tests/Rxn_profile.pickle', 'wb') as f:
             pickle.dump(fig, f)
         plt.savefig('tests/Rxn_profile.png', dpi=700)
     plt.show()

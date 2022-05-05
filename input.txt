@@ -1,11 +1,14 @@
 # PES
-1.140938682,25.01185834,0,20.65235812,1.140938682
-
+0,20.51424317,-19.53928088
+5.081701482,17.62443411,-27.26424273
 
 # Labels
-p-Sa, Cis, p-Ra, Trans, p-Sa
+Pre,TS,Post
+Pre,TS,Post
 
 # graph
-label : Barrier 
+label : R,Sa, S,Sa
 colors : salmon, brown
-legend : False
+legend : True
+save : False
+title : N-Alkylation
