@@ -20,7 +20,7 @@ parser.add_argument('-ypad', help='Define the y shift of the text for the labels
 parser.add_argument('-tick', '--tick_height', help='Set the height of the ticks for the maximum values. Default %(default)s', default=1.5, type=float)
 parser.add_argument('-nl', '--no_legend', help='Disable the legend on the graph', action='store_true')
 parser.add_argument('-c', '--colors', nargs='+', help='Declaire the colors of the graph')
-
+parser.add_argument('-xl', '--x_label', help='Set the x label for the graph. Default %(default)s', default='Dihedral angle')
 
 parser.add_argument('--save', help='Save pickle and csvs of the graph', action='store_true')
 parser.add_argument('-gd','--graph_directory', help='Define the directory in which you want to save the files of the graph. Default: %(default)s', default='scan_graph')
@@ -83,6 +83,8 @@ def show_graph():
     )
     plt.ylim(bottom=0)
     plt.title(args.title)
+    plt.ylabel('Energy $\Delta E\quad[kcal/mol]$')
+    plt.xlabel(args.x_label)
     plt.tight_layout()
 
     fig = plt.gcf()

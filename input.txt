@@ -1,14 +1,16 @@
-# PES
+--# PES
 0,20.51424317,-19.53928088
 5.081701482,17.62443411,-27.26424273
 
-# Labels
+--# Labels
 Pre,TS,Post
 Pre,TS,Post
 
-# graph
+--# graph
 label : R,Sa, S,Sa
-colors : salmon, brown
+colors : #00ff00, #ff0000
 legend : True
 save : False
 title : N-Alkylation
+labelpoint : 1, 2
+zero : 0, 1

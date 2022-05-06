@@ -16,16 +16,51 @@ newax_text_list = []
 leg_text = []
 
 
+class InputError(Exception):
+
+    def __init__(self, prm, len):
+        self.prm = prm
+        self.len = len
+
+    def __str__(self):
+        return f"The parameter {self.prm} and the number of the reactions ({self.len}) are not consitents. Check the input file"
+
+
 class Interpreter:
+    graph_prm = {
+        'label' : [],
+        'colors' : ['b', 'g', 'r', 'c', 'm', 'y', 'k'],
+        'legend' : ['false'],
+        'save' : ['false'],
+        'labelpoint' : None,
+        'zero' : ['0'],
+        'title' : ['Reaction Energy Path'], 
+    }
 
     def __init__(self, filename):
         self.filename = filename
         self.read_file()
+
+        print(self.graph_prm)
+
+
         for idx, data in enumerate(list(self.pes)):
-            create_path(data, self.graph_prm['colors'][idx], self.graph_prm['label'][idx])
-            x_labels(self.labels[idx], self.graph_prm['colors'][idx])
-        show_graph(legend=True if self.graph_prm['legend'][0].lower() == 'true' else False,
-        save=True if self.graph_prm['save'][0].lower() == 'true' else False, title=self.graph_prm['title'][0])
+            create_path(
+                data,
+                self.graph_prm['colors'][idx], 
+                self.graph_prm['label'][idx], 
+                np.array(self.graph_prm['labelpoint'], dtype="int8") if self.graph_prm['labelpoint'] else None, 
+                int(self.graph_prm['zero'][idx])
+                )
+            x_labels(
+                self.labels[idx], 
+                self.graph_prm['colors'][idx]
+                )
+        show_graph(
+            legend=True if self.graph_prm['legend'][0].lower() == 'true' else False,
+            save=True if self.graph_prm['save'][0].lower() == 'true' else False, 
+            title=self.graph_prm['title'][0]
+            )
 
 
     
@@ -34,15 +69,18 @@ class Interpreter:
         with open(self.filename) as f:
             self.file = f.read()
 
-        pes, labels, graph_prm = [i.strip().split('\n')[1:] for i in self.file.split('#')[1:] if i]
+        pes, labels, graph_prm = [i.strip().split('\n')[1:] for i in self.file.split('--# ')[1:] if i]
         pes = [[float(j) for j in i.split(',') if j] for i in pes if i]
         self.labels = [[j for j in i.split(',')] for i in labels]
         self.pes = np.array(pes, dtype='float64')
 
 
-        self.graph_prm = {i.split(' : ')[0].lower():[j for j in i.split(' : ')[1].split(', ')] for i in graph_prm if i}
+        # self.graph_prm = {i.split(' : ')[0].lower():[j for j in i.split(' : ')[1].split(', ')] for i in graph_prm if i}
+        for i in graph_prm:
+            if i and not i.startswith('#'):
+                self.graph_prm[i.split(' : ')[0].lower()] = [j for j in i.split(' : ')[1].split(', ')]
 
-        if 'color' not in self.graph_prm: self.graph_prm['color'] = ['k'] * len(self.pes)
+        self.control_prm()
 
         assert len(self.pes) == len(self.labels)
         for i in range(len(self.pes)-1):
@@ -53,7 +91,18 @@ class Interpreter:
         return self.pes, self.labels, self.graph_prm
 
 
-def create_path(data, color, label):
+    def control_prm(self):
+        if len(self.graph_prm['colors']) !=  len(self.pes): self.graph_prm['colors'] = ['b', 'g', 'r', 'c', 'm', 'y', 'k']; print('The number of colors specified was not the same of the pes. So traed with the default color scheme')
+        if len(self.graph_prm['label']) !=  len(self.pes): self.graph_prm['label'] = [None] * len(self.pes)
+        if set(self.graph_prm['label']) == set([None]): self.graph_prm['legend'] = 'False'
+        
+        if len(self.graph_prm['zero']) !=  len(self.pes):
+            if set(self.graph_prm['zero']) != set(['0']):
+                raise InputError('zero', len(self.pes))
+            self.graph_prm['zero'] = ['0'] * len(self.pes)
+
+
+def create_path(data, color, label, labelpoint, zero):
     for j, d in enumerate(data):
         if j == len(data)-1:
             break
@@ -74,6 +123,13 @@ def create_path(data, color, label):
         plt.hlines(data[j], j - 0.15, j + 0.15)
     plt.hlines(data[-1], len(data) - 1.15, len(data) - 0.85)
     leg_text.append(path_patch)
+
+    if labelpoint is not None:
+        for i in labelpoint:
+            va = 'center'
+            ha = 'left' if i != len(data)-1 else 'right'
+            x = i+0.2 if i != len(data)-1 else i-.2
+            plt.text(x,data[i], f"$\Delta G^‡$ = {np.round(data[i]-data[zero], 2)} kcal/mol", verticalalignment=va, horizontalalignment=ha, color=color)
 
 
 def x_labels(x_label, color):
