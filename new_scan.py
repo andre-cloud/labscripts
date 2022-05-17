@@ -21,6 +21,8 @@ parser.add_argument('-tick', '--tick_height', help='Set the height of the ticks 
 parser.add_argument('-nl', '--no_legend', help='Disable the legend on the graph', action='store_true')
 parser.add_argument('-c', '--colors', nargs='+', help='Declaire the colors of the graph')
 parser.add_argument('-xl', '--x_label', help='Set the x label for the graph. Default %(default)s', default='Dihedral angle')
+parser.add_argument('-ff', '--from_file', help='Get the data from an xy file',action='store_true')
+parser.add_argument('--no_label', help='Don\'t write the label in the peak', action='store_true')
 
 parser.add_argument('--save', help='Save pickle and csvs of the graph', action='store_true')
 parser.add_argument('-gd','--graph_directory', help='Define the directory in which you want to save the files of the graph. Default: %(default)s', default='scan_graph')
@@ -70,11 +72,12 @@ def find_max(x, y):
 
 
 def write_max(x,y, pad, xpad, ypad):
-    for idx, i in enumerate(x):
-        plt.vlines(x=i, ymin=0, ymax=1, color='gray', alpha=0.6)
-        plt.vlines(x=i, ymin=y[idx]-args.tick_height/2+pad, ymax=y[idx]+args.tick_height/2+pad, color='gray', alpha=0.6)
-        ha = 'left' if xpad>=0 else 'right'
-        plt.text(x=i+xpad, y=y[idx]+ypad+pad, s=f'∆E = {round(float(y[idx]), 2)}\n{round(float(i), 2)}', color='gray', horizontalalignment=ha, verticalalignment='center',)
+    if not args.no_label:
+        for idx, i in enumerate(x):
+            plt.vlines(x=i, ymin=0, ymax=1, color='gray', alpha=0.6)
+            plt.vlines(x=i, ymin=y[idx]-args.tick_height/2+pad, ymax=y[idx]+args.tick_height/2+pad, color='gray', alpha=0.6)
+            ha = 'left' if xpad>=0 else 'right'
+            plt.text(x=i+xpad, y=y[idx]+ypad+pad, s=f'∆E = {round(float(y[idx]), 2)}\n{round(float(i), 2)}', color='gray', horizontalalignment=ha, verticalalignment='center',)
 
 
 def show_graph():
@@ -119,12 +122,40 @@ def save_graph(fig):
         bar()
 
 
+def from_file(filename, i):
+    padding = i*args.padding
+
+    with open(filename) as f:
+        fl = f.read()
+
+    data = [[float(i.strip().split()[0]), float(i.strip().split()[1])] for i in fl.split('\n') if i]
+    data = np.array(data)
+    x, y = data[:, 0], data[:, 1]
+
+    maxs = find_max(x, y)
+    y_max = np.array([y[list(x).index(i)] for i in maxs])
+
+    write_max(maxs, y_max, pad=padding, xpad=args.xpad, ypad=args.ypad)
+    if not args.colors:
+        plt.plot(x,y+padding, linewidth=0.5, alpha=0.4)
+        plt.scatter(x,y+padding, label=os.path.split(filename)[1].strip('.log') if len(args.file)>1 else None)
+        plt.scatter(maxs, y_max+padding, alpha=0.4, color='red')
+    else: 
+        plt.plot(x,y+padding, linewidth=0.5, alpha=0.4, color=args.colors[args.file.index(filename)])
+        plt.scatter(x,y+padding, label=os.path.split(filename)[1].strip('.log') if len(args.file)>1 else None, color=args.colors[args.file.index(filename)])
+        plt.scatter(maxs, y_max+padding, alpha=0.4, color='red')
+
+
 
 
 if __name__=='__main__':
     with alive_bar(len(args.file), title='Parsing files') as bar:
-        for idx, file in enumerate(args.file):
-            get_scan(file, idx)
-            bar()
+            for idx, file in enumerate(args.file):
+                if not args.from_file:
+                    get_scan(file, idx)
+                else:
+                    from_file(file, idx)
+                bar()
 
+            
     show_graph()
