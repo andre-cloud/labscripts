@@ -38,6 +38,7 @@ parser.add_argument('-sc','--show_conformers', help='Show all the plots of all c
 parser.add_argument('-cnw','--confs_not_weighted', help='Show all the plots of all conformers not weighted', action='store_true')
 parser.add_argument('-sw','--shift_weighted', help='Define the nm for the shift of the weighted plot', default=0, type=float)
 parser.add_argument('-nw','--no_weighted', help='Do not show weighted plot on the graph. Use this for benchmarks or comparison.', action='store_true')
+parser.add_argument('-i','--invert', action='store_true', help='Invert the y sign, in order to obtain the enantiomer\'s ECD')
 
 
 parser.add_argument('--save', help='Save pickle and csvs of the graph', action='store_true')
@@ -306,7 +307,7 @@ def weight_plot():
     conv = 0
     with alive_bar(len(list(DF.iterrows())), title='Weighting plots') as bar:
         for index, row in DF.iterrows():
-            g = row['conv'][:, 1] * float(row['pop'])
+            g = row['conv'][:, 1] * float(row['pop']) * (1 if not args.invert else -1)
             conv += g
             y = g if not args.confs_not_weighted else row['conv'][:, 1]
             if args.show_conformers:
