@@ -132,3 +132,4 @@ dmypy.json
 .vscode/
 tests/
 ecd_graphs/
+input.txt
