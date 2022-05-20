@@ -44,6 +44,7 @@ def get_scan(filename, i):
 
     x = np.array(list(dict_sort.keys()))
     y = np.array(list(dict_sort.values()))
+    x, y = check_x(x, y)
     maxs = find_max(x, y)
     y_max = np.array([y[list(x).index(i)] for i in maxs])
 
