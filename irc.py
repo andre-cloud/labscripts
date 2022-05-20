@@ -25,20 +25,28 @@ args = parser.parse_args()
 
 
 def get_irc(filename):
-    splitter = 'Summary of reaction path following'
+    
     with open(filename) as f:
         fl = f.read()
+
+    x, y = gaussian(fl)
+
+    plt.plot(x, y, color=args.color, alpha=0.4)
+    plt.scatter(x, y, color=args.color)
+
+    text_on_graphs(x, y, prod_left=args.prod_right, arrow=args.arrow)
+    show_graph(y)
+
+
+def gaussian(fl):
+    splitter = 'Summary of reaction path following'
     fl = fl.split(splitter)[1]
     fl = fl.split('--------------------------------------------------------------------------')[1]
     data = fl.split('\n')[2:]
     x = [float(i.split()[2]) for i in data if (i and i.split())]
     y = [float(i.split()[1]) for i in data if (i and i.split())]
     y = (np.array(y) - max(y))*627.51
-    plt.plot(x, y, color=args.color, alpha=0.8)
-    plt.scatter(x, y, color=args.color)
-
-    text_on_graphs(x, y, prod_left=args.prod_right, arrow=args.arrow)
-    show_graph(y)
+    return x,y 
 
 
 def text_on_graphs(x, y, xpad=0.2, ypad=2, idx=3, prod_left=True, arrow=False):
@@ -63,7 +71,7 @@ def show_graph(y):
     plt.title(args.title)
     plt.xlabel('Reaction coordinates')
     plt.ylabel('$\Delta$E [kcal/mol]')
-    plt.ylim((min(y)-3, 2))
+    plt.ylim((min(y)-3, max(y)+3))
 
     plt.tight_layout()
     fig = plt.gcf()
