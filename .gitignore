@@ -133,3 +133,4 @@ dmypy.json
 tests/
 ecd_graphs/
 input.txt
+scan.dat
