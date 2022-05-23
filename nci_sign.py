@@ -22,7 +22,7 @@ parser.add_argument('-c', '--colors', nargs='+', help='Declaire the colors of th
 
 
 
-args = parser.parse_args(['tests/ts_maj_nhb.dat'])
+args = parser.parse_args()
 
 
 
