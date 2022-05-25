@@ -24,6 +24,7 @@ parser.add_argument('-c', '--colors', nargs='+', help='Declaire the colors of th
 parser.add_argument('-xl', '--x_label', help='Set the x label for the graph. Default %(default)s', default='Dihedral angle')
 parser.add_argument('-ff', '--from_file', help='Get the data from an xy file. For orca calucation use .relaxscanact.dat file',action='store_true')
 parser.add_argument('--no_label', help='Don\'t write the label in the peak', action='store_true')
+parser.add_argument('-a', '--absolute', action='store_true', help='Toggle if absolute energy is desired')
 
 parser.add_argument('--save', help='Save pickle and csvs of the graph', action='store_true')
 parser.add_argument('-gd','--graph_directory', help='Define the directory in which you want to save the files of the graph. Default: %(default)s', default='scan_graph')
@@ -36,14 +37,11 @@ def get_scan(filename, i):
     padding = i*args.padding
     data = cclib.io.ccread(filename)
     x = data.scanparm[0]
-    y = list((np.array(data.scanenergies)- min(np.array(data.scanenergies)))*23.060541945329)
+    if not args.absolute : 
+        y = list((np.array(data.scanenergies)- min(np.array(data.scanenergies)))*23.060541945329)
+    else:
+        y = np.array(data.scanenergies)*0.03674930495120813
     dict_sort = {}
-    for i in sorted(list(x)):
-        if i not in dict_sort:
-            dict_sort[i] = y[list(x).index(i)]
-
-    x = np.array(list(dict_sort.keys()))
-    y = np.array(list(dict_sort.values()))
     x, y = check_x(x, y)
     maxs = find_max(x, y)
     y_max = np.array([y[list(x).index(i)] for i in maxs])
@@ -159,8 +157,8 @@ def from_file(filename, i):
     data = [[float(i.strip().split()[0]), float(i.strip().split()[1])] for i in fl.split('\n') if i]
     data = np.array(data)
     x, y = data[:, 0], data[:, 1]
-    # y -= min(y)
-    # y *= 627.51
+    if not args.absolute : y -= min(y)
+    if not args.absolute : y *= 627.51
     x, y = check_x(x, y)
     maxs = find_max(x, y)
     y_max = np.array([y[list(x).index(i)] for i in maxs])
