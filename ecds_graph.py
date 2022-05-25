@@ -1,5 +1,4 @@
 import argparse
-from ast import pattern
 import os
 import re
 import shutil
