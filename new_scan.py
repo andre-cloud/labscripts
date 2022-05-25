@@ -89,7 +89,7 @@ def show_graph():
     if not args.no_legend: plt.legend(
         loc='upper center', bbox_to_anchor=(0.5, -.125), fancybox=True, shadow=True, ncol=3
     )
-    plt.ylim(bottom=0)
+    # plt.ylim(bottom=0)
     plt.title(args.title)
     plt.ylabel('Energy $\Delta E\quad[kcal/mol]$')
     plt.xlabel(args.x_label)
@@ -159,8 +159,8 @@ def from_file(filename, i):
     data = [[float(i.strip().split()[0]), float(i.strip().split()[1])] for i in fl.split('\n') if i]
     data = np.array(data)
     x, y = data[:, 0], data[:, 1]
-    y -= min(y)
-    y *= 627.51
+    # y -= min(y)
+    # y *= 627.51
     x, y = check_x(x, y)
     maxs = find_max(x, y)
     y_max = np.array([y[list(x).index(i)] for i in maxs])

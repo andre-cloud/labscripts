@@ -134,3 +134,7 @@ tests/
 ecd_graphs/
 input.txt
 scan.dat
+.prettierrc
+input.txt
+.gitignore
+om_1
