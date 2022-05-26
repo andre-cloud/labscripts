@@ -47,9 +47,9 @@ class Interpreter:
         'title' : ['Reaction Energy Path'], 
         'style' : ['-'],
         'linewidth' : ['1.5'],
-        'points' : None,
-        'pointscolor' : None,
-        'pointsstyle' : None,
+        'points' : [],
+        'pointscolor' : [],
+        'pointsstyle' : [],
         'ypad' : ['0'],
         'horizontalalignment' : ['0'],
     }
@@ -143,6 +143,11 @@ class Interpreter:
         
         if len(self.graph_prm['ypad']) !=  len(self.pes): self.graph_prm['ypad'] = ['0'] * len(self.pes)
         if len(self.graph_prm['horizontalalignment']) !=  len(self.graph_prm['labelpoint']): self.graph_prm['horizontalalignment'] = ['left'] * len(self.graph_prm['labelpoint'])
+
+        if self.graph_prm['points']:
+            if len(self.graph_prm['pointscolor']) !=  len(self.pes): self.graph_prm['pointscolor'] = [None] * len(self.pes)
+            if len(self.graph_prm['pointsstyle']) !=  len(self.pes): self.graph_prm['pointsstyle'] = ['-'] * len(self.pes)
+
 
 
 
