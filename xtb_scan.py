@@ -7,7 +7,7 @@ import numpy as np
 parser = argparse.ArgumentParser()
 
 parser.add_argument('file', help='Scan log file with 1D scan', nargs='+')
-parser.add_argument('type', choices=['parser','writer'], help='Define which functionality of the program you want to use')
+parser.add_argument('type', choices=['parser','writer', 'p', 'w'], help='Define which functionality of the program you want to use')
 parser.add_argument('-i', '--index', help='FOR WRITER PART: define the index (starting at 1) of the atoms', nargs='+', required=True)
 
 parser.add_argument('-s', '--start', help='The initial point of the scan', type=float, default=0)
@@ -111,19 +111,19 @@ def write_file(energies, idx):
 
 text ='''$constrain 
  force constant={fc} 
- {prm}: {index} {auto} 
+ {prm}: {index}, {auto} 
 $scan 
  1: {auto}, {end}, {step} 
 $end '''
 
 
 if __name__=='__main__':
-    if args.type == 'parser':
+    if args.type in ['parser', 'p']:
         for idx, i in enumerate(args.file):
             en = get_energy(i)
             write_file(en, idx)
     
-    if args.type == 'writer':
+    if args.type in ['writer', 'w']:
         if args.index:
             for idx, i in enumerate(args.file):
                 atoms = get_position(i, args.index)

@@ -1,12 +1,13 @@
+import argparse
+import sys
 
-from cgitb import handler
+
 import matplotlib.pyplot as plt
 import matplotlib.path as mpath
 import matplotlib.patches as mpatches
 import numpy as np
 import pickle
 
-import sys
 
 
 Path = mpath.Path
@@ -14,6 +15,15 @@ fig, ax = plt.subplots()
 
 newax_text_list = []
 leg_text = []
+
+
+
+
+
+
+
+
+
 
 
 class InputError(Exception):
@@ -35,6 +45,11 @@ class Interpreter:
         'labelpoint' : None,
         'zero' : ['0'],
         'title' : ['Reaction Energy Path'], 
+        'style' : ['-'],
+        'linewidth' : ['1.5'],
+        'points' : None,
+        'pointscolor' : None,
+        'pointsstyle' : None,
     }
 
     def __init__(self, filename):
@@ -46,20 +61,33 @@ class Interpreter:
 
         for idx, data in enumerate(list(self.pes)):
             create_path(
-                data,
-                self.graph_prm['colors'][idx], 
-                self.graph_prm['label'][idx], 
-                np.array(self.graph_prm['labelpoint'], dtype="int8") if self.graph_prm['labelpoint'] else None, 
-                int(self.graph_prm['zero'][idx])
+                data=data,
+                color=self.graph_prm['colors'][idx], 
+                label=self.graph_prm['label'][idx], 
+                labelpoint=np.array(self.graph_prm['labelpoint'], dtype="int8") if self.graph_prm['labelpoint'] else None, 
+                zero=int(self.graph_prm['zero'][idx]),
+                linestyle=self.graph_prm['style'][idx],
+                linewidth=self.graph_prm['linewidth'][idx],
                 )
             x_labels(
                 self.labels[idx], 
                 self.graph_prm['colors'][idx]
                 )
+        if self.graph_prm['points']:
+            for idx, i in enumerate(self.graph_prm['points']):
+                data = np.array(i.strip('(').strip(')').split(','), dtype=np.float64)
+                display_points(
+                data=data,
+                color=self.graph_prm['pointscolor'][idx], 
+                linestyle=self.graph_prm['pointsstyle'][idx],
+                )
+                
+
         show_graph(
             legend=True if self.graph_prm['legend'][0].lower() == 'true' else False,
             save=True if self.graph_prm['save'][0].lower() == 'true' else False, 
-            title=self.graph_prm['title'][0]
+            title=self.graph_prm['title'][0], 
+            data=data
             )
 
 
@@ -78,7 +106,7 @@ class Interpreter:
         # self.graph_prm = {i.split(' : ')[0].lower():[j for j in i.split(' : ')[1].split(', ')] for i in graph_prm if i}
         for i in graph_prm:
             if i and not i.startswith('#'):
-                self.graph_prm[i.split(' : ')[0].lower()] = [j for j in i.split(' : ')[1].split(', ')]
+                self.graph_prm[i.split(' : ')[0].lower()] = [j for j in i.split(' : ')[1].split('; ')]
 
         self.control_prm()
 
@@ -93,16 +121,30 @@ class Interpreter:
 
     def control_prm(self):
         if len(self.graph_prm['colors']) !=  len(self.pes): self.graph_prm['colors'] = ['b', 'g', 'r', 'c', 'm', 'y', 'k']; print('The number of colors specified was not the same of the pes. So traed with the default color scheme')
+
         if len(self.graph_prm['label']) !=  len(self.pes): self.graph_prm['label'] = [None] * len(self.pes)
+
         if set(self.graph_prm['label']) == set([None]): self.graph_prm['legend'] = 'False'
         
         if len(self.graph_prm['zero']) !=  len(self.pes):
             if set(self.graph_prm['zero']) != set(['0']):
                 raise InputError('zero', len(self.pes))
             self.graph_prm['zero'] = ['0'] * len(self.pes)
+        
+        if len(self.graph_prm['style']) !=  len(self.pes): self.graph_prm['style'] = ['-'] * len(self.pes)
+
+        if len(self.graph_prm['linewidth']) !=  len(self.pes): self.graph_prm['linewidth'] = ['1.5'] * len(self.pes)
+
+        
 
 
-def create_path(data, color, label, labelpoint, zero):
+def display_points(data, color, linestyle):
+    print(data)
+    plt.scatter(data[0], data[1], color=color, alpha=0.6, linewidth=0.3)
+    plt.hlines(data[1], data[0] - .1, data[0] + 0.1, color=color, alpha=0.7, linestyle=linestyle)
+
+
+def create_path(data, color, label, labelpoint, zero, linestyle, linewidth:float):
     for j, d in enumerate(data):
         if j == len(data)-1:
             break
@@ -111,18 +153,20 @@ def create_path(data, color, label, labelpoint, zero):
                 Path([(j, data[j]), (j + 0.5, data[j]), (j + 0.5, data[j + 1]),
                         (j + 1, data[j + 1])],
                         [Path.MOVETO, Path.CURVE4, Path.CURVE4, Path.CURVE4]),
-                fc="none", transform=ax.transData, color=color, label=label)
+                fc="none", transform=ax.transData, color=color, label=label, linestyle=linestyle, linewidth=linewidth)
         else:
             path_patch = mpatches.PathPatch(
                 Path([(j, data[j]), (j + 0.5, data[j]), (j + 0.5, data[j + 1]),
                         (j + 1, data[j + 1])],
                         [Path.MOVETO, Path.CURVE4, Path.CURVE4, Path.CURVE4]),
-                fc="none", transform=ax.transData, color=color, label=label)
+                fc="none", transform=ax.transData, color=color, label=label, linestyle=linestyle, linewidth=linewidth)
 
         ax.add_patch(path_patch)
-        plt.hlines(data[j], j - 0.15, j + 0.15)
-    plt.hlines(data[-1], len(data) - 1.15, len(data) - 0.85)
+        plt.hlines(data[j], j - 0.1, j + 0.1, color=color, alpha=0.7, linestyle=linestyle)
+    plt.hlines(data[-1], len(data) - 1.1, len(data) -0.9, color=color, alpha=0.7, linestyle=linestyle)
     leg_text.append(path_patch)
+    for x, y in enumerate(data):
+        plt.scatter(x, y, color=color, alpha=0.6, linewidth=0.3)
 
     if labelpoint is not None:
         for i in labelpoint:
@@ -153,7 +197,7 @@ def x_labels(x_label, color):
         newax[i].spines['bottom'].set_visible(False)
 
 
-def show_graph(legend, title, save=False):
+def show_graph(legend, title, data, save=False):
     ax.set_title(title)
     ax.set_ylabel(r"$G_{rel}$ (kcal / mol)")
     plt.minorticks_on()
@@ -161,6 +205,16 @@ def show_graph(legend, title, save=False):
     ax.tick_params(axis='x', which='minor', bottom=False)
     ax.tick_params(which='minor', labelright=True, right=True)
     ax.tick_params(labelright=True, right=True)
+    
+    
+    # frame1 = plt.gca()
+    # frame1.axes.get_yaxis().set_ticks([])
+
+    # plt.hlines(data[1], 1, 3+.3, linestyles='--', color='salmon', alpha=0.7)
+    # plt.hlines(data[5], 5, 3-.3, linestyles='--', color='salmon', alpha=0.7)
+    # plt.vlines(3, data[1], data[5], linestyles='--', color='salmon', alpha=0.7)
+    # plt.text(3, np.mean((data[1], data[5])), s='$\Delta\Delta G^‡$',verticalalignment='center', horizontalalignment='center', bbox=dict(facecolor='white', edgecolor='salmon', boxstyle='round,pad=1'))
+    
     
     if legend:
         plt.legend(handles=leg_text)
@@ -176,11 +230,38 @@ ax_label = []
 locs, labels = plt.xticks()
 
 
+prms = '\n'.join([f"- {i} : " for i in list(Interpreter.graph_prm.keys())])
+parser = argparse.ArgumentParser(description=f'''
+Input file MUST contains, in this order, and in this formatting:
+
+--# PES
+[...]
+--# LABELS
+[...]
+--# GRAPHS
+[...]
+
+PES: Each line is a "reaction path". A line can contains many energy comma separated.
+
+LABELS: Contains the labels of the points of the PES Paths. MUST BE THE SAME NUMBER OF THE PESs LINES
+
+GRAPHS: Contains all the parameters that can be tweched in the graph. All setting are listed here below
+{prms}
+''', formatter_class=argparse.RawTextHelpFormatter)
+
+parser.add_argument('file', help='Input file')
+
+args = parser.parse_args()
+
+
+
+
+
 
 if __name__=='__main__':
 
 
-    Interpreter('input.txt')
+    Interpreter(args.file)
 
     # for idx, i in enumerate(datas):
     #     create_path(i, colors[idx])
