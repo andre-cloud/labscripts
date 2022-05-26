@@ -1,16 +1,24 @@
 --# PES
 0,20.51424317,-19.53928088
-5.081701482,17.62443411,-27.26424273
+-2.815398916,17.42487338,-23.18965715
+
+
 
 --# Labels
 Pre,TS,Post
 Pre,TS,Post
 
 --# graph
-label : R,Sa, S,Sa
-colors : #00ff00, #ff0000
+label : R,Sa Hessian; S,Ra Optimisation
+# colors : r; salmon
 legend : True
 save : False
 title : N-Alkylation
-labelpoint : 1, 2
-zero : 0, 1
+labelpoint : 0; 2
+style : --; -
+linewidth : 0.75; 1.5
+points : (2,0); (1,10)
+pointscolor : turquoise;red
+pointsstyle : -; -
+ypad : 0; 10
+horizontalalignment : left; left; right
