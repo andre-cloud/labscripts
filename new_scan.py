@@ -1,14 +1,19 @@
 import argparse
 from collections import Counter
 import os
+import random
 import sys
 import shutil
 
 from alive_progress import alive_bar
 import cclib
+import matplotlib as mpl 
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
+
+
+graphs={}
 
 parser = argparse.ArgumentParser()
 
@@ -25,6 +30,7 @@ parser.add_argument('-xl', '--x_label', help='Set the x label for the graph. Def
 parser.add_argument('-ff', '--from_file', help='Get the data from an xy file. For orca calucation use .relaxscanact.dat file',action='store_true')
 parser.add_argument('--no_label', help='Don\'t write the label in the peak', action='store_true')
 parser.add_argument('-a', '--absolute', action='store_true', help='Toggle if absolute energy is desired')
+parser.add_argument('-r', '--random', help='Activate random color generation', action='store_true')
 
 parser.add_argument('--save', help='Save pickle and csvs of the graph', action='store_true')
 parser.add_argument('-gd','--graph_directory', help='Define the directory in which you want to save the files of the graph. Default: %(default)s', default='scan_graph')
@@ -47,18 +53,10 @@ def get_scan(filename, i):
     y_max = np.array([y[list(x).index(i)] for i in maxs])
 
     write_max(maxs, y_max, pad=padding, xpad=args.xpad, ypad=args.ypad)
-    if not args.colors:
-        plt.plot(x,y+padding, linewidth=0.5, alpha=0.4)
-        plt.scatter(x,y+padding, label=os.path.split(filename)[1].strip('.log') if len(args.file)>1 else None)
-        plt.scatter(maxs, y_max+padding, alpha=0.4, color='red')
-    else: 
-        plt.plot(x,y+padding, linewidth=0.5, alpha=0.4, color=args.colors[args.file.index(filename)])
-        plt.scatter(x,y+padding, label=os.path.split(filename)[1].strip('.log') if len(args.file)>1 else None, color=args.colors[args.file.index(filename)])
-        plt.scatter(maxs, y_max+padding, alpha=0.4, color='red')
+
+    plot(x, y, padding, filename, maxs, y_max)
 
     # plt.plot(x,y+padding, '--', alpha=0.4, )
-
-    
 
 
 def find_max(x, y):
@@ -164,19 +162,30 @@ def from_file(filename, i):
     y_max = np.array([y[list(x).index(i)] for i in maxs])
 
     write_max(maxs, y_max, pad=padding, xpad=args.xpad, ypad=args.ypad)
+    plot(x, y, padding, filename, maxs, y_max)
+
+
+def plot(x, y, padding, filename, maxs, y_max):
     if not args.colors:
+        if args.random:
+            r = lambda: random.randint(0,255)
+            c = '#%02X%02X%02X' % (r(),r(),r())
+            plt.plot(x,y+padding, linewidth=0.5, alpha=0.4, color=c)
+            plt.scatter(x,y+padding, label=os.path.split(filename)[1].strip('.log') if len(args.file)>1 else None, color=c)
+            plt.scatter(maxs, y_max+padding, alpha=0.4, color='red')
+            return
         plt.plot(x,y+padding, linewidth=0.5, alpha=0.4)
         plt.scatter(x,y+padding, label=os.path.split(filename)[1].strip('.log') if len(args.file)>1 else None)
         plt.scatter(maxs, y_max+padding, alpha=0.4, color='red')
-    else: 
-        plt.plot(x,y+padding, linewidth=0.5, alpha=0.4, color=args.colors[args.file.index(filename)])
-        plt.scatter(x,y+padding, label=os.path.split(filename)[1].strip('.log') if len(args.file)>1 else None, color=args.colors[args.file.index(filename)])
-        plt.scatter(maxs, y_max+padding, alpha=0.4, color='red')
+        return
 
-
-
+    plt.plot(x,y+padding, linewidth=0.5, alpha=0.4, color=args.colors[args.file.index(filename)])
+    plt.scatter(x,y+padding, label=os.path.split(filename)[1].strip('.log') if len(args.file)>1 else None, color=args.colors[args.file.index(filename)])
+    plt.scatter(maxs, y_max+padding, alpha=0.4, color='red')
+    return
 
 if __name__=='__main__':
+
     with alive_bar(len(args.file), title='Parsing files') as bar:
         for idx, file in enumerate(args.file):
             if not args.from_file:
