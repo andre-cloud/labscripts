@@ -39,10 +39,10 @@ class InputError(Exception):
 class Interpreter:
     graph_prm = {
         'label' : [],
-        'colors' : ['b', 'g', 'r', 'c', 'm', 'y', 'k'],
+        'colors' : [None],
         'legend' : ['false'],
         'save' : ['false'],
-        'labelpoint' : None,
+        'labelpoint' : [None],
         'zero' : ['0'],
         'title' : ['Reaction Energy Path'], 
         'style' : ['-'],
@@ -50,6 +50,8 @@ class Interpreter:
         'points' : None,
         'pointscolor' : None,
         'pointsstyle' : None,
+        'ypad' : ['0'],
+        'horizontalalignment' : ['0'],
     }
 
     def __init__(self, filename):
@@ -64,10 +66,12 @@ class Interpreter:
                 data=data,
                 color=self.graph_prm['colors'][idx], 
                 label=self.graph_prm['label'][idx], 
-                labelpoint=np.array(self.graph_prm['labelpoint'], dtype="int8") if self.graph_prm['labelpoint'] else None, 
+                labelpoint=np.array(self.graph_prm['labelpoint'], dtype="int8") if self.graph_prm['labelpoint'] != [None] else None, 
                 zero=int(self.graph_prm['zero'][idx]),
                 linestyle=self.graph_prm['style'][idx],
                 linewidth=self.graph_prm['linewidth'][idx],
+                ypad=self.graph_prm['ypad'][idx],
+                horizontalalignment=self.graph_prm['horizontalalignment']
                 )
             x_labels(
                 self.labels[idx], 
@@ -106,7 +110,7 @@ class Interpreter:
         # self.graph_prm = {i.split(' : ')[0].lower():[j for j in i.split(' : ')[1].split(', ')] for i in graph_prm if i}
         for i in graph_prm:
             if i and not i.startswith('#'):
-                self.graph_prm[i.split(' : ')[0].lower()] = [j for j in i.split(' : ')[1].split('; ')]
+                self.graph_prm[i.split(' : ')[0].lower()] = [j.strip() for j in i.split(' : ')[1].split(';')]
 
         self.control_prm()
 
@@ -120,9 +124,11 @@ class Interpreter:
 
 
     def control_prm(self):
-        if len(self.graph_prm['colors']) !=  len(self.pes): self.graph_prm['colors'] = ['b', 'g', 'r', 'c', 'm', 'y', 'k']; print('The number of colors specified was not the same of the pes. So traed with the default color scheme')
+        if len(self.graph_prm['colors']) !=  len(self.pes): self.graph_prm['colors'] = [None] * len(self.pes)
 
         if len(self.graph_prm['label']) !=  len(self.pes): self.graph_prm['label'] = [None] * len(self.pes)
+
+
 
         if set(self.graph_prm['label']) == set([None]): self.graph_prm['legend'] = 'False'
         
@@ -134,17 +140,19 @@ class Interpreter:
         if len(self.graph_prm['style']) !=  len(self.pes): self.graph_prm['style'] = ['-'] * len(self.pes)
 
         if len(self.graph_prm['linewidth']) !=  len(self.pes): self.graph_prm['linewidth'] = ['1.5'] * len(self.pes)
-
         
+        if len(self.graph_prm['ypad']) !=  len(self.pes): self.graph_prm['ypad'] = ['0'] * len(self.pes)
+        if len(self.graph_prm['horizontalalignment']) !=  len(self.graph_prm['labelpoint']): self.graph_prm['horizontalalignment'] = ['left'] * len(self.graph_prm['labelpoint'])
+
+
 
 
 def display_points(data, color, linestyle):
-    print(data)
     plt.scatter(data[0], data[1], color=color, alpha=0.6, linewidth=0.3)
     plt.hlines(data[1], data[0] - .1, data[0] + 0.1, color=color, alpha=0.7, linestyle=linestyle)
 
 
-def create_path(data, color, label, labelpoint, zero, linestyle, linewidth:float):
+def create_path(data, color, label, labelpoint, zero, linestyle, linewidth:float, ypad, horizontalalignment):
     for j, d in enumerate(data):
         if j == len(data)-1:
             break
@@ -169,11 +177,11 @@ def create_path(data, color, label, labelpoint, zero, linestyle, linewidth:float
         plt.scatter(x, y, color=color, alpha=0.6, linewidth=0.3)
 
     if labelpoint is not None:
-        for i in labelpoint:
+        for idx, i in enumerate(labelpoint):
             va = 'center'
-            ha = 'left' if i != len(data)-1 else 'right'
-            x = i+0.2 if i != len(data)-1 else i-.2
-            plt.text(x,data[i], f"$\Delta G^‡$ = {np.round(data[i]-data[zero], 2)} kcal/mol", verticalalignment=va, horizontalalignment=ha, color=color)
+            ha = horizontalalignment[idx] if i != len(data)-1 else 'right'
+            x = i+0.2 if ha != 'right' else i-.2
+            plt.text(x,data[i]+float(ypad), f"$\Delta G^‡$ = {np.round(data[i]-data[zero], 2)} kcal/mol", verticalalignment=va, horizontalalignment=ha, color=color)
 
 
 def x_labels(x_label, color):
