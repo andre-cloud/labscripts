@@ -77,14 +77,15 @@ def dihedral(p):
 def check_for_maxs(y, geom):
     idx = list(y).index(max(y))
     flag = idx != 0 and idx != len(y)
-    at_1 = get_position(geom[0], args.index)
-    at_2 = get_position(geom[-1], args.index)
-    s = np.sign((dihedral(at_1), dihedral(at_2)))
-    print(s)
-    return (flag and len(set(s)) == 2)
+    at = get_position(geom[idx], args.index)
+    dih = np.abs(dihedral(at))
+    th = 35
+    return (flag and (dih<=th or dih>=180-th))
 
-def write_output(geom):
-    with open('ensemble.xyz', 'a') as f:
+def write_output(geom, del_=False):
+    if os.path.exists("ensemble.xyz") and del_:
+        os.remove("ensemble.xyz")
+    with open('ensemble.xyz', 'a+') as f:
         f.write(geom+'\n')
 
 def check_x(x, y):
@@ -112,9 +113,14 @@ def check_x(x, y):
 
 
 
+
+
 xs, ys, labels = [], [] , []
 if __name__ == '__main__':
-    for i in args.file:
+    plots = []
+    labels = []
+    pops = []
+    for idx, i in enumerate(args.file):
         data, geom, points = read_input(i)
         x, y = data[:, 0], data[:, 1]
         if check_for_maxs(y, points):
@@ -122,16 +128,50 @@ if __name__ == '__main__':
             xs.append(x)
             ys.append(y)
             labels.append(i)
-            write_output(geom)
-        else: print(i)
-    sys.exit()
+            write_output(geom, del_=True if idx == 0 else False)
+        else: pops.append(idx)
+
+    for i in pops[::-1]: args.file.pop(i)
+    print(len(xs))
 
     for idx, i in enumerate(zip(xs, ys)):
         x, y = i
-        plt.plot(x, y, '-o', label=args.file[idx])
+        l = os.path.join(args.file[idx].split('/')[0],args.file[idx].split('/')[2])
+        plot = plt.plot(x, y, '-o', label=args.file[idx])
+        plots.append(plot)
+        labels.append(args.file[idx])
     
-    plt.legend(
-        loc='upper center', bbox_to_anchor=(0.5, -.125), fancybox=True, shadow=True, ncol=2
+    fig = plt.gcf()
+    legend = plt.legend(
+        loc='upper center', bbox_to_anchor=(0.5, -.125), fancybox=True, shadow=True, ncol=3
     )
+
+    for obj in legend.__dict__['legendHandles']:
+        obj.set_picker(5)
+
+    def on_pick(event):
+        flag = False
+        groups = {key: val for key, val in zip(labels, plots)}
+        label = event.artist.get_label()
+        # print(label)
+        # print(label in groups)
+        for key in groups:            
+            if key == label:
+                if not groups[key][0].__dict__['_alpha'] or groups[key][0].__dict__['_alpha'] != 1:
+                    groups[key][0].set_alpha(1.0)
+                else:
+                    flag = True
+            else:
+                groups[key][0].set_alpha(0.1)
+        if flag:
+            for key in groups:
+                groups[key][0].set_alpha(None)
+            flag = False
+
+        fig.canvas.draw()
+
+    plt.connect('pick_event', on_pick)
+
+
     plt.tight_layout()
     plt.show()

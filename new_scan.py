@@ -38,6 +38,9 @@ parser.add_argument('-gd','--graph_directory', help='Define the directory in whi
 
 args = parser.parse_args()
 
+plots = []
+lines = []
+labels = []
 
 def get_scan(filename, i):
     padding = i*args.padding
@@ -60,6 +63,7 @@ def get_scan(filename, i):
 
 
 def find_max(x, y):
+    m = min(y)
     maxs = []
     for idx, i in enumerate(x):
         back, fowr = idx-1, idx+1
@@ -68,7 +72,7 @@ def find_max(x, y):
         if back_2<0 and back>=0: back_2=-1
         if fowr>=len(x): fowr=0; fowr_2=1
         if fowr_2==len(x): fowr_2=0 
-        if y[idx] > y[back] and y[idx] > y[fowr] and y[idx] > args.threshold and y[idx] > y[back_2] and y[idx] > y[fowr_2]: maxs.append(i)
+        if y[idx] > y[back] and y[idx] > y[fowr] and y[idx] > m+args.threshold and y[idx] > y[back_2] and y[idx] > y[fowr_2]: maxs.append(i)
     return maxs
 
 
@@ -82,10 +86,12 @@ def write_max(x,y, pad, xpad, ypad):
 
 
 def show_graph():
-    if not args.no_legend: plt.legend(
+    ax = plt.gca()
+
+    if not args.no_legend: legend = ax.legend(
         loc='upper center', bbox_to_anchor=(0.5, -.125), fancybox=True, shadow=True, ncol=3
     )
-    # plt.ylim(bottom=0)
+    if not args.absolute: plt.ylim(bottom=0)
     plt.title(args.title)
     plt.ylabel('Energy $\Delta E\quad[kcal/mol]$')
     plt.xlabel(args.x_label)
@@ -94,12 +100,44 @@ def show_graph():
     fig = plt.gcf()
     if args.save:
         save_graph(fig)
+    
+    if not args.no_legend:
+        for obj in legend.__dict__['legendHandles']:
+            obj.set_picker(5)
+
+        def on_pick(event):
+            flag = False
+            groups = {key: [val, lin] for key, val, lin in zip(labels, plots, lines)}
+            label = event.artist.get_label()
+            for key in groups:
+                if key == label:
+                    if not groups[key][0].__dict__['_alpha'] or groups[key][0].__dict__['_alpha'] != 1:
+                        groups[key][0].set_alpha(1.0)
+                        groups[key][1][0].set_alpha(0.4)
+                    else:
+                        flag = True
+                else:
+                    groups[key][0].set_alpha(0.1)
+                    groups[key][1][0].set_alpha(0)
+            if flag:
+                for key in groups:
+                    groups[key][0].set_alpha(None)
+                    groups[key][1][0].set_alpha(0.4)
+                flag = False
+
+            fig.canvas.draw()
+    
+        plt.connect('pick_event', on_pick)
+    
     try:
         plt.show()
     except Exception:
         print('It was impossible to visulaize the graph of these file because you\'re running a non interactive terminal session. Graph is dumped in pickle and png format.')
         if not args.save:
             save_graph(fig)
+
+
+
 
 
 
@@ -170,18 +208,27 @@ def plot(x, y, padding, filename, maxs, y_max):
         if args.random:
             r = lambda: random.randint(0,255)
             c = '#%02X%02X%02X' % (r(),r(),r())
-            plt.plot(x,y+padding, linewidth=0.5, alpha=0.4, color=c)
-            plt.scatter(x,y+padding, label=os.path.split(filename)[1].strip('.log') if len(args.file)>1 else None, color=c)
+            l = plt.plot(x,y+padding, linewidth=0.5, alpha=0.4, color=c)
+            a = plt.scatter(x,y+padding, label=os.path.split(filename)[1].strip('.log') if len(args.file)>1 else None, color=c)
             plt.scatter(maxs, y_max+padding, alpha=0.4, color='red')
+            plots.append(a)
+            lines.append(l)
+            labels.append(os.path.split(filename)[1].strip('.log') if len(args.file)>1 else None)
             return
-        plt.plot(x,y+padding, linewidth=0.5, alpha=0.4)
-        plt.scatter(x,y+padding, label=os.path.split(filename)[1].strip('.log') if len(args.file)>1 else None)
+        l = plt.plot(x,y+padding, linewidth=0.5, alpha=0.4)
+        a = plt.scatter(x,y+padding, label=os.path.split(filename)[1].strip('.log') if len(args.file)>1 else None)
         plt.scatter(maxs, y_max+padding, alpha=0.4, color='red')
+        plots.append(a)
+        lines.append(l)
+        labels.append(os.path.split(filename)[1].strip('.log') if len(args.file)>1 else None)
         return
 
-    plt.plot(x,y+padding, linewidth=0.5, alpha=0.4, color=args.colors[args.file.index(filename)])
-    plt.scatter(x,y+padding, label=os.path.split(filename)[1].strip('.log') if len(args.file)>1 else None, color=args.colors[args.file.index(filename)])
+    l = plt.plot(x,y+padding, linewidth=0.5, alpha=0.4, color=args.colors[args.file.index(filename)])
+    a = plt.scatter(x,y+padding, label=os.path.split(filename)[1].strip('.log') if len(args.file)>1 else None, color=args.colors[args.file.index(filename)])
     plt.scatter(maxs, y_max+padding, alpha=0.4, color='red')
+    plots.append(a)
+    lines.append(l)
+    labels.append(os.path.split(filename)[1].strip('.log') if len(args.file)>1 else None)
     return
 
 if __name__=='__main__':

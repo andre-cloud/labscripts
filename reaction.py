@@ -230,7 +230,7 @@ def show_graph(legend, title, data, save=False):
     
     
     if legend:
-        plt.legend(handles=leg_text)
+        plt.legend(handles=leg_text,  loc='upper center', bbox_to_anchor=(0.5, -.125), fancybox=True, shadow=True, ncol=3)
     plt.tight_layout()
     if save:
         with open('tests/Rxn_profile.pickle', 'wb') as f:
