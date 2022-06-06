@@ -366,9 +366,13 @@ def save_graph(fig, png=False):
             sys.exit()
     os.mkdir(directory)
 
-    ln = 1+len(list(DF.iterrows())) if not png else 2
+    ln = 2+len(list(DF.iterrows())) if not png else 3
 
     with alive_bar(ln, title='Saving plot') as bar:      
+        str_ = '\n'.join([f'{k} : {v if not v is None else "Default"}' for k, v in args.__dict__.items()])
+        with open(os.path.join(directory, 'command.dat'), 'w') as f:
+            f.write(str_)
+        bar()
         with open(os.path.join(directory, 'ecd.pickle'), 'wb') as f:
             pickle.dump(fig, f)
         bar()
