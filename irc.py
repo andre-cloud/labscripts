@@ -29,7 +29,10 @@ def get_irc(filename):
     with open(filename) as f:
         fl = f.read()
 
-    x, y = gaussian(fl)
+    if "O   R   C   A" in fl:
+        x, y = orca(fl)
+    else:
+        x, y = gaussian(fl)
 
     plt.plot(x, y, color=args.color, alpha=0.4)
     plt.scatter(x, y, color=args.color)
@@ -37,6 +40,15 @@ def get_irc(filename):
     text_on_graphs(x, y, prod_left=args.prod_right, arrow=args.arrow)
     show_graph(y)
 
+
+def orca(fl):
+    splitter = ' IRC PATH SUMMARY '
+    fl = fl.split(splitter)[1]
+    fl = fl.split('Timings for individual modules')[0]
+    data = fl.splitlines()[5:-1]
+    x = [float(i.split()[0]) for i in data if (i and i.split())]
+    y = [float(i.split()[2]) for i in data if (i and i.split())]
+    return x,y
 
 def gaussian(fl):
     splitter = 'Summary of reaction path following'

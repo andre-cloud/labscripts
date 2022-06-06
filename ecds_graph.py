@@ -347,7 +347,7 @@ def show_plot(compare=False):
     fig = plt.gcf()
 
     if args.save and not compare:
-        save_graph(fig)
+        save_graph(fig, png=True)
     try:       
         plt.show()
     except Exception:
