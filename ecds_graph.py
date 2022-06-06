@@ -369,7 +369,7 @@ def save_graph(fig, png=False):
     ln = 2+len(list(DF.iterrows())) if not png else 3
 
     with alive_bar(ln, title='Saving plot') as bar:      
-        str_ = '\n'.join([f'{k} : {v if not v is None else "Default"}' for k, v in args.__dict__.items()])
+        str_ = '\n'.join([f'{k} : {v if not v is None else "Default"}' for k, v in args.__dict__.items()]) + '\n'
         with open(os.path.join(directory, 'command.dat'), 'w') as f:
             f.write(str_)
         bar()
@@ -463,7 +463,7 @@ def compare_graphs():
 
 if __name__ == '__main__':
 
-
+    print(2*args.sigma*np.sqrt(2+np.log(2)))
     if args.compare:
         compare_graphs()
         sys.exit()
