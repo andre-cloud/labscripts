@@ -53,6 +53,7 @@ gb = {'y_tot': None, 'x': X}
 columns = ['fln', 'pop', 'R', 'l', 'conv', 't']
 DF = pd.DataFrame(columns=columns)
 
+prm= {}
 
 class InputError(Exception):
     def __init__(self, message):
@@ -346,7 +347,7 @@ def show_plot(compare=False):
     plt.tight_layout()
     fig = plt.gcf()
 
-    if args.save and not compare:
+    if args.save:
         save_graph(fig, png=True)
     try:       
         plt.show()
@@ -369,7 +370,7 @@ def save_graph(fig, png=False):
     ln = 2+len(list(DF.iterrows())) if not png else 3
 
     with alive_bar(ln, title='Saving plot') as bar:      
-        str_ = '\n'.join([f'{k} : {v if not v is None else "Default"}' for k, v in args.__dict__.items()]) + '\n'
+        str_ = '\n'.join([f'{k} : {v if not v is None else "Default"}' for k, v in args.__dict__.items()]) + '\n' + '\n'.join([f'{k} : {v if not v is None else "Default"}' for k, v in prm.items()]) + '\n' + 'FWHM : ' + str(2*args.sigma*np.sqrt(2+np.log(2)))
         with open(os.path.join(directory, 'command.dat'), 'w') as f:
             f.write(str_)
         bar()
@@ -419,6 +420,7 @@ def shift(ref):
                 DF._set_value(index, 'conv', np.hstack((np.array(list([i] for i in x_shifted)), np.array(list([i] for i in row['conv'][:, 1])))))
                 bar()
         print(f'Plots shifted on average (weighted by population) by {np.round(np.sum(np.array(shs)), 4)} nm')
+        prm['shift'] = np.round(np.sum(np.array(shs)), 4)
     else:
         with alive_bar(len(list(DF.iterrows())), title='Shifting plots') as bar:
             for index, row in DF.iterrows():
@@ -426,8 +428,12 @@ def shift(ref):
                 DF._set_value(index, 'conv', np.hstack((np.array(list([i] for i in x_shifted)), np.array(list([i] for i in row['conv'][:, 1])))))
                 bar()
         print(f'Every plot is shifted by {args.shift} nm, as asked by the user.')
+        prm['shift'] = args.shift
 
     if args.shift_weighted != 0: print(f'Weighted plot will be shifted by {args.shift_weighted} nm, instead')
+
+    prm['shift weighted'] = args.shift_weighted if args.shift_weighted else np.sum(shs) if np.sum(shs) != [] else args.shift
+
 
     x = (X+args.shift_weighted) if args.shift_weighted != 0 else (X+np.sum(shs)) if shs != [] else X+args.shift if args.shift else X
     gb['x'] = x
@@ -456,14 +462,15 @@ def compare_graphs():
         with alive_bar(1, title='Plotting files') as bar:
             ref = get_reference(args.reference)
             bar()
-    
+
     show_plot(compare=True)
+
+
 
 
 
 if __name__ == '__main__':
 
-    print(2*args.sigma*np.sqrt(2+np.log(2)))
     if args.compare:
         compare_graphs()
         sys.exit()
