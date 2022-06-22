@@ -38,6 +38,8 @@ parser.add_argument('-cnw','--confs_not_weighted', help='Show all the plots of a
 parser.add_argument('-sw','--shift_weighted', help='Define the nm for the shift of the weighted plot', default=0, type=float)
 parser.add_argument('-nw','--no_weighted', help='Do not show weighted plot on the graph. Use this for benchmarks or comparison.', action='store_true')
 parser.add_argument('-i','--invert', action='store_true', help='Invert the y sign, in order to obtain the enantiomer\'s ECD')
+parser.add_argument('-l', '--level', help='Define the computational level of the graph', nargs='+')
+parser.add_argument('-pff', '--pop_from_file',help='File containg population of conformes. Names must be the same of the TDDFT files')
 
 
 parser.add_argument('--save', help='Save pickle and csvs of the graph', action='store_true')
@@ -55,6 +57,14 @@ DF = pd.DataFrame(columns=columns)
 
 prm= {}
 
+if args.pop_from_file:
+    with open(args.pop_from_file) as f:
+        pff = {i.strip().split()[0]:float(i.strip().split()[1]) for i in f.readlines() if i.strip()}
+
+
+
+labels, plots = [], []
+
 class InputError(Exception):
     def __init__(self, message):
         super().__init__(message)
@@ -65,7 +75,10 @@ if args.pop:
 
 
 def get_thoery(file):
-
+    if args.level: 
+        level_of_theory = args.level[args.file.index(file)]
+        return level_of_theory
+    
     level = None
     bs = None
     try:
@@ -157,10 +170,10 @@ def get_rvel(filename:str):
         return r
     else:
         pt = get_orca_pattern(fl)
-        if re.findall(pt, fl) == ['del']:
+        if not pt:
             raise InputError(f'File {filename} it\'s not a TD-DFT calculation. Please check the input and re-run the code.')
         fl = fl.split(pt)[1]
-        fl = fl.split('Total run time')[0]
+        fl = fl.split('Total run time')[0] if pt != 'CD SPECTRUM' else fl.split('sTD-DFT done')[0]
         fl = fl.split('\n')[5:]
         return np.array([float(i.split()[3]) for i in fl if i])
 
@@ -180,10 +193,10 @@ def get_wavelenght(filename):
         return l
     else:
         pt = get_orca_pattern(fl)
-        if re.findall(pt, fl) == ['del']:
+        if not pt:
             raise InputError(f'File {filename} it\'s not a TD-DFT calculation. Please check the input and re-run the code.')
         fl = fl.split(pt)[1]
-        fl = fl.split('Total run time')[0]
+        fl = fl.split('Total run time')[0] if pt != 'CD SPECTRUM' else fl.split('sTD-DFT done')[0]
         fl = fl.split('\n')[5:]
         return np.array([float(i.split()[2]) for i in fl if i])
 
@@ -242,11 +255,16 @@ def equalpop():
 
 def get_population():
 
-    if args.pop:
+    if args.pop or args.pop_from_file:
         with alive_bar(len(FILETOANALYSE), title='Getting λ R(vel) and population for files') as bar:
-            for idx, i in enumerate(FILETOANALYSE):
-                DF.loc[len(DF)] = df_row(i, args.pop[idx])
-                bar()
+            if not args.pop_from_file:
+                for idx, i in enumerate(FILETOANALYSE):
+                    DF.loc[len(DF)] = df_row(i, args.pop[idx])
+                    bar()
+            else:
+                for idx, i in enumerate(FILETOANALYSE):
+                    DF.loc[len(DF)] = df_row(i, pff[i.strip('.out').strip('.log')])
+                    bar()
 
     elif len(FILETOANALYSE)==1:
         equalpop()
@@ -297,7 +315,10 @@ def convolution():
             conv = 0
             for l, r in zip(row['l'], row['R']):
                 conv += gaussian(X, args.sigma, r, l)
-            DF.at[index, 'conv'] = np.hstack((np.array(list([i] for i in X)), np.array(list([i] for i in normalize(conv)))))
+            try:
+                DF.at[index, 'conv'] = np.hstack((np.array(list([i] for i in X)), np.array(list([i] for i in normalize(conv)))))
+            except:
+                pass
             bar()
         
     if not (args.reference is None):
@@ -312,7 +333,9 @@ def weight_plot():
             y = g if not args.confs_not_weighted else row['conv'][:, 1]
             if args.show_conformers:
                 a = 0.3 if not args.no_weighted else 1
-                plt.plot(row['conv'][:, 0], y, alpha=a, label=(row['fln'].strip('.log').title()+'-'+row['t']) if len(args.file) > 1 else None)
+                p = plt.plot(row['conv'][:, 0], y, alpha=a, label=(row['fln'].strip('.log').title()+'-'+row['t']) if len(args.file) > 1 else None)
+                labels.append((row['fln'].strip('.log').title()+'-'+row['t']) if len(args.file) > 1 else None)
+                plots.append(p)
             bar()
 
     # gb['y_tot'] = normalize(conv)
@@ -336,16 +359,42 @@ def get_reference(filename):
 
 def show_plot(compare=False):
     plt.xlabel('Wavelenght [nm]')
-    plt.ylabel('Δε')
+    plt.ylabel('Δε (a.u.)')
     title = args.title
     if title == 'ECD graph' and len(set(DF['t'])) == 1:
         title += ' '+DF['t'][0]
     plt.title(title)
     plt.xlim([args.initial_lambda, args.final_lambda])
     if args.legend:
-        plt.legend(loc='upper center', bbox_to_anchor=(0.5, -.125), fancybox=True, shadow=True)
+        legend = plt.legend(loc='upper center', bbox_to_anchor=(0.5, -.125), fancybox=True, shadow=True, ncol=6)
     plt.tight_layout()
     fig = plt.gcf()
+    if args.legend:
+        for obj in legend.__dict__['legendHandles']:
+            obj.set_picker(5)
+
+        def on_pick(event):
+            flag = False
+            groups = {key: val for key, val in zip(labels, plots)}
+            label = event.artist.get_label()
+            # print(label)
+            # print(label in groups)
+            for key in groups:            
+                if key == label:
+                    if not groups[key][0].__dict__['_alpha'] or groups[key][0].__dict__['_alpha'] != 1:
+                        groups[key][0].set_alpha(1.0)
+                    else:
+                        flag = True
+                else:
+                    groups[key][0].set_alpha(0.1)
+            if flag:
+                for key in groups:
+                    groups[key][0].set_alpha(None)
+                flag = False
+
+            fig.canvas.draw()
+
+        plt.connect('pick_event', on_pick)
 
     if args.save:
         save_graph(fig, png=True)
@@ -471,6 +520,13 @@ def compare_graphs():
 
 if __name__ == '__main__':
 
+    if args.level:
+        if len(args.level) == 1: 
+            args.level *= len(args.file)
+        elif len(args.level) != len(args.file):
+            print('The number of level(s) given does not match the number of input files. Exitting...')
+            sys.exit()
+    
     if args.compare:
         compare_graphs()
         sys.exit()

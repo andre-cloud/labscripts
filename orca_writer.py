@@ -16,10 +16,15 @@ args = parser.parse_args()
 
 
 INPUT = '''
-! wb97x-d4 6-311++g(d,p) CPCM(hexane) OPT
+! cam-b3lyp 6-311++g(d,p) CPCM(hexane)
 
 % PAL
-    NPROCS 22
+    NPROCS 44
+end
+
+
+%tddft
+mode stddft
 end
 
 *xyz 0 1 
@@ -39,10 +44,6 @@ def create_input(filename):
     os.mkdir(os.path.join('inputs_orca', directory))
     os.rename(filename, os.path.join('inputs_orca', directory, filename))
     os.rename(fn, os.path.join('inputs_orca', directory, fn))
-
-
-
-
 
 
 

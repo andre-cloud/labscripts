@@ -28,6 +28,7 @@ Results:
 - ΔG: {g} {unit}
 - t1/2: {t}
 - Temperature: {Temp} K
+- K : {const}
 {frame}'''
 
 def eyring(g, T):
@@ -57,7 +58,7 @@ def trasform_time(timestamp):
 if __name__=='__main__':
     if args.time != 0:
         output = get_g_from_t(args.time, args.T, args.order, args.conc)
-        print(text.format(frame='='*20, order=args.order,g = output, unit= 'kJ/mol' if args.kj else 'kcal/mol', t = args.time, Temp=args.T))
+        print(text.format(frame='='*20, order=args.order,g = output, unit= 'kJ/mol' if args.kj else 'kcal/mol', t = args.time, Temp=args.T, const=inverse_eyring(output, args.T)))
     if args.gibbs_energy != 0:
         output = get_time(args.gibbs_energy, args.T, args.order, args.conc)
-        print(text.format(frame='='*20, order=args.order,g = args.gibbs_energy, unit= 'kJ/mol' if args.kj else 'kcal/mol', t = output, Temp=args.T))
+        print(text.format(frame='='*20, order=args.order,g = args.gibbs_energy, unit= 'kJ/mol' if args.kj else 'kcal/mol', t = output, Temp=args.T, const=eyring(args.gibbs_energy, args.T)))
