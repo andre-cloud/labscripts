@@ -52,6 +52,8 @@ class Interpreter:
         'pointsstyle' : [],
         'ypad' : ['0'],
         'horizontalalignment' : ['0'],
+        'y_limit' : [None],
+        'decimal_digits' : ['1']
     }
 
     def __init__(self, filename):
@@ -71,7 +73,8 @@ class Interpreter:
                 linestyle=self.graph_prm['style'][idx],
                 linewidth=self.graph_prm['linewidth'][idx],
                 ypad=self.graph_prm['ypad'][idx],
-                horizontalalignment=self.graph_prm['horizontalalignment']
+                horizontalalignment=self.graph_prm['horizontalalignment'],
+                decimals = self.graph_prm['decimal_digits'][0]
                 )
             x_labels(
                 self.labels[idx], 
@@ -91,7 +94,8 @@ class Interpreter:
             legend=True if self.graph_prm['legend'][0].lower() == 'true' else False,
             save=True if self.graph_prm['save'][0].lower() == 'true' else False, 
             title=self.graph_prm['title'][0], 
-            data=data
+            data=data, 
+            y_lim=self.graph_prm['y_limit'][0]
             )
 
 
@@ -103,7 +107,7 @@ class Interpreter:
 
         pes, labels, graph_prm = [i.strip().split('\n')[1:] for i in self.file.split('--# ')[1:] if i]
         pes = [[float(j) for j in i.split(',') if j] for i in pes if i]
-        self.labels = [[j for j in i.split(',')] for i in labels]
+        self.labels = [[j.strip() for j in i.split(';')] for i in labels]
         self.pes = np.array(pes, dtype='float64')
 
 
@@ -113,11 +117,6 @@ class Interpreter:
                 self.graph_prm[i.split(' : ')[0].lower()] = [j.strip() for j in i.split(' : ')[1].split(';')]
 
         self.control_prm()
-
-        assert len(self.pes) == len(self.labels)
-        for i in range(len(self.pes)-1):
-            assert len(self.pes[i]) == len(self.labels[i])
-
 
     def __repr__(self):
         return self.pes, self.labels, self.graph_prm
@@ -157,7 +156,7 @@ def display_points(data, color, linestyle):
     plt.hlines(data[1], data[0] - .1, data[0] + 0.1, color=color, alpha=0.7, linestyle=linestyle)
 
 
-def create_path(data, color, label, labelpoint, zero, linestyle, linewidth:float, ypad, horizontalalignment):
+def create_path(data, color, label, labelpoint, zero, linestyle, linewidth:float, ypad, horizontalalignment, decimals):
     for j, d in enumerate(data):
         if j == len(data)-1:
             break
@@ -186,7 +185,7 @@ def create_path(data, color, label, labelpoint, zero, linestyle, linewidth:float
             va = 'center'
             ha = horizontalalignment[idx] if i != len(data)-1 else 'right'
             x = i+0.2 if ha != 'right' else i-.2
-            plt.text(x,data[i]+float(ypad), f"$\Delta G^‡$ = {np.round(data[i]-data[zero], 2)} kcal/mol", verticalalignment=va, horizontalalignment=ha, color=color)
+            plt.text(x,data[i]+float(ypad), f"$\Delta G^‡$ = {np.round(data[i]-data[zero], int(decimals))} kcal/mol", verticalalignment=va, horizontalalignment=ha, color=color)
 
 
 def x_labels(x_label, color):
@@ -210,27 +209,20 @@ def x_labels(x_label, color):
         newax[i].spines['bottom'].set_visible(False)
 
 
-def show_graph(legend, title, data, save=False):
+def show_graph(legend, title, data, save, y_lim:float):
     ax.set_title(title)
-    ax.set_ylabel(r"$G_{rel}$ (kcal / mol)")
+    ax.set_ylabel(r"$\Delta G$ (kcal / mol)")
     plt.minorticks_on()
 
     ax.tick_params(axis='x', which='minor', bottom=False)
     ax.tick_params(which='minor', labelright=True, right=True)
     ax.tick_params(labelright=True, right=True)
-    
-    
-    # frame1 = plt.gca()
-    # frame1.axes.get_yaxis().set_ticks([])
 
-    # plt.hlines(data[1], 1, 3+.3, linestyles='--', color='salmon', alpha=0.7)
-    # plt.hlines(data[5], 5, 3-.3, linestyles='--', color='salmon', alpha=0.7)
-    # plt.vlines(3, data[1], data[5], linestyles='--', color='salmon', alpha=0.7)
-    # plt.text(3, np.mean((data[1], data[5])), s='$\Delta\Delta G^‡$',verticalalignment='center', horizontalalignment='center', bbox=dict(facecolor='white', edgecolor='salmon', boxstyle='round,pad=1'))
-    
+    if y_lim:
+        ax.set_ylim(top=float(y_lim))
     
     if legend:
-        plt.legend(handles=leg_text,  loc='upper center', bbox_to_anchor=(0.5, -.125), fancybox=True, shadow=True, ncol=3)
+        plt.legend(handles=leg_text,  loc='upper center', bbox_to_anchor=(0.5, -.075), fancybox=True, shadow=True, ncol=3)
     plt.tight_layout()
     if save:
         with open('tests/Rxn_profile.pickle', 'wb') as f:
