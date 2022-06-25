@@ -28,7 +28,7 @@ parser.add_argument('-p', '--pop', help='Define the population of the conformers
 parser.add_argument('-r', '--reference', help='File xy of the ECD plot sperimental')
 parser.add_argument('-t', '--title', help='Set the title of the final plot. Default %(default)s', default='ECD graph')
 parser.add_argument('--goodvibes', help='Execute goodvibes. If not -p, equal population will be considered', action='store_true')
-parser.add_argument('--skip_data', help='Skip data to find the pick wavelenght', default=15, type=int)
+parser.add_argument('--skip_data', help='Skip data to find the pick wavelenght', default=0, type=int)
 parser.add_argument('-n', '--normalisation', help='Set the normalisation range. Default: [-%(default)s, %(default)s]', default=1)
 parser.add_argument('-sh', '--shift', help='Manually set the wavelenght shift in order to match the resulting spectra with the reference', type=float)
 parser.add_argument('-gd','--graph_directory', help='Define the directory in which you want to save the files of the graph. Default: %(default)s', default='ecd_graphs')
@@ -60,8 +60,6 @@ prm= {}
 if args.pop_from_file:
     with open(args.pop_from_file) as f:
         pff = {i.strip().split()[0]:float(i.strip().split()[1]) for i in f.readlines() if i.strip()}
-
-
 
 labels, plots = [], []
 
@@ -172,8 +170,9 @@ def get_rvel(filename:str):
         pt = get_orca_pattern(fl)
         if not pt:
             raise InputError(f'File {filename} it\'s not a TD-DFT calculation. Please check the input and re-run the code.')
+        sl_patter = "sTD-DFT done" if 'sttdf' in fl.lower() else 'Total run time'
         fl = fl.split(pt)[1]
-        fl = fl.split('Total run time')[0] if pt != 'CD SPECTRUM' else fl.split('sTD-DFT done')[0]
+        fl = fl.split(sl_patter)[0]
         fl = fl.split('\n')[5:]
         return np.array([float(i.split()[3]) for i in fl if i])
 
@@ -195,8 +194,10 @@ def get_wavelenght(filename):
         pt = get_orca_pattern(fl)
         if not pt:
             raise InputError(f'File {filename} it\'s not a TD-DFT calculation. Please check the input and re-run the code.')
+        
+        sl_patter = "sTD-DFT done" if 'sttdf' in fl.lower() else 'Total run time'
         fl = fl.split(pt)[1]
-        fl = fl.split('Total run time')[0] if pt != 'CD SPECTRUM' else fl.split('sTD-DFT done')[0]
+        fl = fl.split(sl_patter)[0]
         fl = fl.split('\n')[5:]
         return np.array([float(i.split()[2]) for i in fl if i])
 
@@ -209,8 +210,6 @@ def split_file(filename: str):
     if 'O   R   C   A' in file:
         FILETOANALYSE.append(filename)
         return None
-
-
     
     if len(re.findall('Copyright', file))>1:
         head_directory = os.path.split(filename)[0]
@@ -243,7 +242,10 @@ def get_filename(abs_path):
 
 
 def df_row(filename, pop):
-    fl = os.path.split(filename)[1].strip('.log')
+    if '/' in filename or '\\' in filename:
+        fl = os.path.split(filename)[1].strip('.log')
+    else:
+        fl = filename.strip('.log')
     return [fl, pop , get_rvel(get_absolute_path(fl)), get_wavelenght(get_absolute_path(fl)), None, get_thoery(get_absolute_path(fl)) ]
 
 
@@ -332,9 +334,10 @@ def weight_plot():
             conv += g
             y = g if not args.confs_not_weighted else row['conv'][:, 1]
             if args.show_conformers:
+                lab = row['fln'].split('.')[0].title() if len(args.file) > 1 else None
                 a = 0.3 if not args.no_weighted else 1
-                p = plt.plot(row['conv'][:, 0], y, alpha=a, label=(row['fln'].strip('.log').title()+'-'+row['t']) if len(args.file) > 1 else None)
-                labels.append((row['fln'].strip('.log').title()+'-'+row['t']) if len(args.file) > 1 else None)
+                p = plt.plot(row['conv'][:, 0], y, alpha=a, label=lab)
+                labels.append(lab)
                 plots.append(p)
             bar()
 
@@ -363,10 +366,10 @@ def show_plot(compare=False):
     title = args.title
     if title == 'ECD graph' and len(set(DF['t'])) == 1:
         title += ' '+DF['t'][0]
-    plt.title(title)
+    plt.title(r'{}'.format(title))
     plt.xlim([args.initial_lambda, args.final_lambda])
     if args.legend:
-        legend = plt.legend(loc='upper center', bbox_to_anchor=(0.5, -.125), fancybox=True, shadow=True, ncol=6)
+        legend = plt.legend(loc='upper center', bbox_to_anchor=(0.5, -.125), fancybox=True, shadow=True, ncol=2)
     plt.tight_layout()
     fig = plt.gcf()
     if args.legend:
@@ -446,10 +449,7 @@ def x_max(ref, value=False):
         set = max_ if max_ > -min_ else min_
         return (ref[np.argwhere(ref[:, 1] == set )[0], 0], 'pos' if set == max_ else 'neg')
 
-    if value == 'pos':
-        set = np.max(ref[idx:, 1])
-    else:
-        set = np.min(ref[idx:, 1])
+    set = np.max(ref[idx:, 1]) if value == 'pos' else min(ref[idx:, 1])
 
     return ref[np.argwhere(ref[:, 1] == set )[0], 0]
 
@@ -468,6 +468,7 @@ def shift(ref):
                 x_shifted = row['conv'][:, 0] + shift
                 DF._set_value(index, 'conv', np.hstack((np.array(list([i] for i in x_shifted)), np.array(list([i] for i in row['conv'][:, 1])))))
                 bar()
+                print(shift)
         print(f'Plots shifted on average (weighted by population) by {np.round(np.sum(np.array(shs)), 4)} nm')
         prm['shift'] = np.round(np.sum(np.array(shs)), 4)
     else:
@@ -481,10 +482,15 @@ def shift(ref):
 
     if args.shift_weighted != 0: print(f'Weighted plot will be shifted by {args.shift_weighted} nm, instead')
 
-    prm['shift weighted'] = args.shift_weighted if args.shift_weighted else np.sum(shs) if np.sum(shs) != [] else args.shift
+    if np.array(shs).size > 0:
+        prm['shift weighted'] = args.shift_weighted if args.shift_weighted else np.sum(shs) if np.sum(shs).size > 0 else args.shift
 
 
-    x = (X+args.shift_weighted) if args.shift_weighted != 0 else (X+np.sum(shs)) if shs != [] else X+args.shift if args.shift else X
+        x = (X+args.shift_weighted) if args.shift_weighted != 0 else (X+np.sum(shs)) if np.array(shs).size > 0 else X+args.shift if args.shift else X
+    else:
+        prm['shift weighted'] = args.shift
+        x = X
+    
     gb['x'] = x
 
 
@@ -519,7 +525,6 @@ def compare_graphs():
 
 
 if __name__ == '__main__':
-
     if args.level:
         if len(args.level) == 1: 
             args.level *= len(args.file)

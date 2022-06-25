@@ -52,4 +52,4 @@ if __name__ == '__main__':
         mean_energy = np.sum(en*p)
         confs = len(list(en))
         if not args.ltx : print(f"{file}\t{mean_energy:.4f}\t{confs}\t{entropy:.3f}")
-        else: print(f"{file}\t{mean_energy:.4f}&{confs}&{entropy:.3f}")
+        else: print(f"{file}\t{mean_energy:.4f} & {entropy:.3f} ({confs})")
