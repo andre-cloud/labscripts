@@ -30,25 +30,34 @@ def get_irc(filename):
         fl = f.read()
 
     if "O   R   C   A" in fl:
-        x, y = orca(fl)
+        x, y, factor= orca(fl)
+        # factor=1
     else:
         x, y = gaussian(fl)
+        factor=1
 
+    x = np.array(x)*factor
     plt.plot(x, y, color=args.color, alpha=0.4)
     plt.scatter(x, y, color=args.color)
 
+    x = list(x)
     text_on_graphs(x, y, prod_left=args.prod_right, arrow=args.arrow)
     show_graph(y)
 
 
 def orca(fl):
+    fac = float([i for i in fl.splitlines() if "Length of steepest" in i][0].split()[6])
     splitter = ' IRC PATH SUMMARY '
     fl = fl.split(splitter)[1]
     fl = fl.split('Timings for individual modules')[0]
     data = fl.splitlines()[5:-1]
     x = [float(i.split()[0]) for i in data if (i and i.split())]
     y = [float(i.split()[2]) for i in data if (i and i.split())]
-    return x,y
+    idx = y.index(max(y))
+    x_max = x[idx]
+    x = list(np.array(x) - x_max)
+    
+    return x,y,fac
 
 def gaussian(fl):
     splitter = 'Summary of reaction path following'
@@ -62,7 +71,8 @@ def gaussian(fl):
 
 
 def text_on_graphs(x, y, xpad=0.2, ypad=2, idx=3, prod_left=True, arrow=False):
-    l, r = x[:len(x)//2], x[len(x)//2:]
+    idx_ = y.index(max(y))
+    l, r = x[:idx_], x[idx_:]
     yl1, yl2 = y[x.index(l[idx])] + ypad, y[x.index(l[-idx])] + ypad
     yr1, yr2 = y[x.index(r[idx])] + ypad, y[x.index(r[-idx])] + ypad
 
@@ -73,8 +83,8 @@ def text_on_graphs(x, y, xpad=0.2, ypad=2, idx=3, prod_left=True, arrow=False):
     left_text = 'To products' if prod_left else 'To reagents'
     right_text = 'To reagents' if prod_left else 'To products'
 
-    plt.text(x=l[len(l)//2-2], y=max(x)-5, s=left_text, horizontalalignment='center', verticalalignment='center')
-    plt.text(x=r[len(l)//2+2], y=max(x)-5, s=right_text, horizontalalignment='center', verticalalignment='center')
+    plt.text(x=l[len(l)//2], y=max(y)-2, s=left_text, horizontalalignment='center', verticalalignment='center')
+    plt.text(x=r[len(r)//2], y=max(y)-2, s=right_text, horizontalalignment='center', verticalalignment='center')
 
     plt.vlines(0, min(x)-20, max(x)+10, linestyles='dashed', alpha=0.4, color="gray")
 
