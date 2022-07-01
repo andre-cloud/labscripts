@@ -4,6 +4,9 @@ import numpy as np
 from scipy.constants import c, h, electron_volt
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import figure
+import shutil
+import sys
+import pickle
 
 #### GAUSSIAN NOT IMPLEMENTED YET
 
@@ -37,6 +40,8 @@ parser.add_argument('-sc','--show_conformers', help='Show all the plots of all c
 parser.add_argument('-sR', '--show_R', help='Show Rstrenght bar in the plot (only for weightered plot)', action='store_true')
 parser.add_argument('-nw','--no_weighted', help='Do not show weighted plot on the graph. Use this for benchmarks or comparison.', action='store_true')
 
+parser.add_argument('--save', help='Save pickle and csvs of the graph', action='store_true')
+parser.add_argument('-gd','--graph_directory', help='Define the directory in which you want to save the files of the graph. Default: %(default)s', default='scan_graph')
 
 
 
@@ -77,6 +82,7 @@ class File:
 class Ref:
 
     def __init__(self, filename, is_nm=args.ref_eV):
+        self.title = File.get_filename(filename).replace('_', ' ').title()
         self.filename = 'Exp. Graph'
         self.fl = File.readinput(filename)
         self.x, self.y = File.obtain_xy(self.fl)
@@ -183,6 +189,9 @@ class ECD:
     def data(self):
         return FACTOR_EV_NM/(self.x+self.shift_ev), self.y
 
+    def generate_report(self):
+        return ' | '.join([self.filename, str(np.round(self.pop, 4)), str(np.round(self.shift_ev, 4)), ', '.join(np.array(self.eV, dtype=str)), ', '.join(np.array(self.R/self.pop, dtype=str))]) + ' | '
+
     
 class Weighted_Plot:
 
@@ -203,7 +212,7 @@ class Weighted_Plot:
         
         self.x_indx_peak = self.find_peak()
         self.shift_ev = 0
-        print(self.x_indx_peak)
+        # print(self.x_indx_peak)
 
     def find_peak(self):
         max_ = np.argmax(self.y)
@@ -213,6 +222,8 @@ class Weighted_Plot:
     def data(self):
         return FACTOR_EV_NM/(self.x+self.shift_ev), self.y
 
+    def generate_report(self):
+        return ' | '.join([ self.filename, ' ', str(np.round(self.shift_ev, 4)), ', '.join(np.array(self.eV, dtype=str)), ', '.join(np.array(self.R, dtype=str))]) + ' | '
 
 
 def get_pop(idx, i, pff:dict=None):
@@ -220,13 +231,48 @@ def get_pop(idx, i, pff:dict=None):
     return args.pop[idx]
 
 def shift(self, rif, user_shift=args.shift):
-    print(FACTOR_EV_NM/rif.x[rif.x_indx_peak], FACTOR_EV_NM/self.x[self.x_indx_peak])
+    # print(FACTOR_EV_NM/rif.x[rif.x_indx_peak], FACTOR_EV_NM/self.x[self.x_indx_peak])
     if not user_shift: x_shift = rif.x[rif.x_indx_peak] - self.x[self.x_indx_peak]
     if user_shift: x_shift = user_shift
     self.shift_ev = x_shift
 
+def create_folder():
+    directory = args.graph_directory   
+
+    if os.path.exists(directory):
+        if 'y' in input(f'A directory named {directory} already exists. Existing directory  will be deleted, wanna procede? [y/n]').lower():
+            shutil.rmtree(directory)   
+        else:
+            sys.exit()
+    os.mkdir(directory)
+
+
+def save_graph(fig):
+    with open(os.path.join(args.graph_directory, 'ecd.pickle'), 'wb') as f:
+        pickle.dump(fig, f)
+
+    for ecd in ECD.ecds:
+        np.savetxt(os.path.join(args.graph_directory, f"{ecd.filename}-graph.txt"), np.array([(x, y) for x, y in zip(FACTOR_EV_NM/ecd.x, ecd.y)]), newline='\n')
+
+    plt.savefig(os.path.join(args.graph_directory, 'ecd.png'), dpi=700)
+
+
+def create_report(idx, w):
+    head = ['Filename', 'Pop', 'Shift (eV)', 'Transition Energy (eV)', 'R']
+    t = '|' + ' | '.join(head) + '|\n' 
+    t += '|'.join([':--:' for _ in head])+ '|\n'
+    t += '|\n'.join([i.generate_report() for i in ECD.ecds])+ '|'
+    if w: t += '|\n'+w.generate_report() + '|\n'
+    if args.sigma == float(0): s = args.fwhm*np.sqrt(2*np.log(2))/2
+    if args.sigma != float(0): s = args.sigma
+    t += '' + f'| Sigma (eV) | {np.round(s, 4)} | FWHM (eV) | {np.round(2*s*np.sqrt(2*np.log(2)), 4)} | |'
+    with open(f'{args.graph_directory}/report_{idx}.md', 'w') as f:
+        f.write(t)
+
 
 if __name__ == '__main__':
+
+    if args.save: create_folder()
 
     # generating graphs and convulate them
     graphs = [ECD(i) for i in args.file]
@@ -237,10 +283,11 @@ if __name__ == '__main__':
         refs = [Ref(i) for i in args.reference]
 
     # weighted graph
+    weighted = None
     if not args.no_weighted:
         weighted = Weighted_Plot()
 
-    # Pop
+    # population
     pff = None
     if args.pop_from_file:
         with open(args.pop_from_file) as f:
@@ -250,7 +297,8 @@ if __name__ == '__main__':
         i.pop = get_pop(idx, i, pff)
 
     plotted = {}
-    fig, axs = plt.subplots(ncols=1, nrows=len(args.reference), figsize=(8,8))
+    c = len(args.reference) if args.reference else 1
+    fig, axs = plt.subplots(ncols=1, nrows=c, figsize=(6.21,6.26))
     for idx, ax in enumerate(axs):
 
     # shift graphs
@@ -258,26 +306,29 @@ if __name__ == '__main__':
             for i in graphs:
                 if refs[idx]: shift(i, refs[idx], args.shift[idx] if args.shift else None)
 
-        if not args.no_weighted:
+        if weighted:
             shift(weighted, refs[idx], args.shift[idx] if args.shift else None)
 
 
     # show graphs
         ax2 = None
         if args.show_conformers or args.no_weighted:
-            alp = 0.3 if not args.no_weighted else 1
+            alp = 0.3 if weighted else 1
             for i in graphs:
                 x, y = i.data()
                 plot = ax.plot(x, y, label=i.filename, alpha=alp)
                 plotted[i.filename] = plot
 
-        if not args.no_weighted:
+        if weighted:
+            # print(FACTOR_EV_NM/weighted.shift_ev)
             x, y = FACTOR_EV_NM/(weighted.x+weighted.shift_ev), weighted.y
             plot = ax.plot(x, y, label=weighted.filename, color='salmon')
             plotted[weighted.filename] = plot
         if refs: 
             plot = ax.plot(FACTOR_EV_NM/refs[idx].x, refs[idx].y, label=refs[idx].filename, color='brown')
             plotted[refs[idx].filename] = plot
+            ax.set_title(f'{refs[idx].title} experimental peak comparison')
+
 
         if args.show_R:
             ax2 = ax.twinx()
@@ -287,6 +338,7 @@ if __name__ == '__main__':
         ax.set_ylim((-args.normalisation-0.1, args.normalisation+0.1))
         if ax2: ax2.set_ylim((-args.normalisation-0.1, args.normalisation+0.1))
         ax.set_xlim((args.initial_lambda, args.final_lambda))
+        if args.save: create_report(idx, weighted)
     
     
     legend = plt.legend(
@@ -294,6 +346,9 @@ if __name__ == '__main__':
     )
 
     plt.tight_layout()
+
+    if args.save: save_graph(plt.gcf())
+
     plt.show()
 
 
