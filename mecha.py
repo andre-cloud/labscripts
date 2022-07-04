@@ -17,10 +17,10 @@ class Preferences:
 		self.n_comparers = 5
 		#run command
 		self.windons_command = "start inkscape.exe ./.E_profile.svg" # Please note .E_profile.svg is a hidden file!
-		self.linux_command = "inkscape ./.E_profile.svg" # Please note .E_profile.svg is a hidden file!
+		self.linux_command = "open -a Safari ./.E_profile.svg" # Please note .E_profile.svg is a hidden file!
 		self.command_line = self.windons_command if os.name == "nt" else self.linux_command
 		# SVG colors
-		self.menu_a = ["grey","black","blue","darkblue","red","darkred","green","darkgreen"]
+		self.menu_a = ['#FA8072', '#A52A2A', "grey","black","blue","darkblue","red","darkred","green","darkgreen"]
 		#SVG line widths
 		self.menu_b = ["2","3","4","5","6"]
 		#SVG line stiles

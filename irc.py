@@ -15,6 +15,7 @@ parser.add_argument('-tit', '--title', help='define the title of the graph. Defa
 
 parser.add_argument('-pr','--prod_right', help='True is the product is on the right of the graph', action='store_false')
 parser.add_argument('-a', '--arrow', help='Toggle the arrow on the graph', action='store_true')
+parser.add_argument('-yp', '--y_pad', type=int, default=0)
 
 parser.add_argument('--save', help='Save pickle and csvs of the graph', action='store_true')
 parser.add_argument('-gd','--graph_directory', help='Define the directory in which you want to save the files of the graph. Default: %(default)s', default='irc_graph')
@@ -83,8 +84,8 @@ def text_on_graphs(x, y, xpad=0.2, ypad=2, idx=3, prod_left=True, arrow=False):
     left_text = 'To products' if prod_left else 'To reagents'
     right_text = 'To reagents' if prod_left else 'To products'
 
-    plt.text(x=l[len(l)//2], y=max(y)-2, s=left_text, horizontalalignment='center', verticalalignment='center')
-    plt.text(x=r[len(r)//2], y=max(y)-2, s=right_text, horizontalalignment='center', verticalalignment='center')
+    plt.text(x=l[len(l)//2], y=max(y)-2+args.y_pad, s=left_text, horizontalalignment='center', verticalalignment='center')
+    plt.text(x=r[len(r)//2], y=max(y)-2+args.y_pad, s=right_text, horizontalalignment='center', verticalalignment='center')
 
     plt.vlines(0, min(x)-20, max(x)+10, linestyles='dashed', alpha=0.4, color="gray")
 

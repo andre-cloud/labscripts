@@ -239,7 +239,7 @@ def get_energy(filename):
         max_y = find_max(x, y)
         max_x = [list(old_x).index(i) for i in max_y] # index of x for maxes
         print(f'{filename} has {str(len(list(max_y)))} max(s) at: {", ".join([str(i) for i in max_y])}')
-        return data
+        # return data
         DIR = os.getcwd()
         try:
             os.chdir(os.path.split(filename)[0])

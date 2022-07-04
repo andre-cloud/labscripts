@@ -28,7 +28,7 @@ Results:
 - ΔG: {g} {unit}
 - t1/2: {t}
 - Temperature: {Temp} K
-- K : {const}
+- k : {const}
 {frame}'''
 
 def eyring(g, T):

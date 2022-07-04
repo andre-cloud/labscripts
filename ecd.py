@@ -34,7 +34,7 @@ parser.add_argument('-sh', '--shift', type=float, help='Define a default shift i
 
 
 # graph details
-parser.add_argument('-def', '--definition', help='Definition of the spectra. Add more points on which calculate the absortion. (MAX-MIN)*10^d. Default: %(default)s', default=4, type=float)
+parser.add_argument('-def', '--definition', help='Definition of the spectra of eV spanned spectra. Add more points on which calculate the absortion. (MAX-MIN)*10^d. Default: %(default)s', default=4, type=float)
 parser.add_argument('-n', '--normalisation', help='Set the normalisation range. Default: [-%(default)s, %(default)s]', default=1)
 parser.add_argument('-sc','--show_conformers', help='Show all the plots of all conformers passed', action='store_true')
 parser.add_argument('-sR', '--show_R', help='Show Rstrenght bar in the plot (only for weightered plot)', action='store_true')
@@ -52,7 +52,6 @@ parser.add_argument('-pff', '--pop_from_file',help='File containg population of 
 
 
 args = parser.parse_args()
-
 
 
 
@@ -105,6 +104,12 @@ class Ref:
 
     def data(self):
         return FACTOR_EV_NM/self.x, self.y
+        
+    def plot(self, ax):
+        plot = ax.plot(FACTOR_EV_NM/self.x, self.y, label=self.filename, color='brown')
+        plotted[self.filename] = plot
+        ax.set_title(f'{self.title} experimental peak comparison')
+
 
 class ECD:
     o_patterns_s = ['CD SPECTRUM VIA TRANSITION VELOCITY DIPOLE MOMENTS', 'CD SPECTRUM']
@@ -161,15 +166,14 @@ class ECD:
     def collect_R(self):
         return np.array([float(i.split()[3]) for i in self.fl])
 
-    def gaussian(self, x, sigma, r, ev):
+    def create_gaussian(self, x, sigma, r, ev):
         return r/(sigma*np.sqrt(2*np.pi)) * np.exp(-0.5*((x-ev)/sigma)**2)
 
     def convolution(self, FWHM, sigma=None):
-        if sigma == float(0): s = FWHM*np.sqrt(2*np.log(2))/2
-        if sigma != float(0): s = sigma
+        s = args.sigma if args.sigma != float(0) else args.fwhm/(np.sqrt(2*np.log(2))*2)
         y = np.zeros(self.x.shape)
         for i, e in zip(self.R, self.eV):
-            y += self.gaussian(self.x, s, i, e)
+            y += self.create_gaussian(self.x, s, i, e)
         y = ECD.normalise(y)
         return y
 
@@ -192,6 +196,10 @@ class ECD:
     def generate_report(self):
         return ' | '.join([self.filename, str(np.round(self.pop, 4)), str(np.round(self.shift_ev, 4)), ', '.join(np.array(self.eV, dtype=str)), ', '.join(np.array(self.R/self.pop, dtype=str))]) + ' | '
 
+    def plot(self, ax, alph):
+        x, y = FACTOR_EV_NM/(self.x+self.shift_ev), self.y
+        plot = ax.plot(x, y, label=self.filename.replace('_', ' '), alpha=alph)
+        plotted[self.filename] = plot
     
 class Weighted_Plot:
 
@@ -225,13 +233,23 @@ class Weighted_Plot:
     def generate_report(self):
         return ' | '.join([ self.filename, ' ', str(np.round(self.shift_ev, 4)), ', '.join(np.array(self.eV, dtype=str)), ', '.join(np.array(self.R, dtype=str))]) + ' | '
 
+    def plot(self, ax):
+        x, y = FACTOR_EV_NM/(self.x+self.shift_ev), self.y
+        plot = ax.plot(x, y, label=self.filename, color='salmon')
+        plotted[self.filename] = plot
+
+    def plot_R(self, ax):
+        for idx, i in enumerate(zip(self.R/np.max(np.abs(self.R))*args.normalisation/2, self.eV+self.shift_ev)):
+            R, eV = i
+            lb = None
+            ax.vlines(FACTOR_EV_NM/eV, 0, R, color='red', label=lb)
+
 
 def get_pop(idx, i, pff:dict=None):
     if pff: return pff[i.filename]
     return args.pop[idx]
 
 def shift(self, rif, user_shift=args.shift):
-    # print(FACTOR_EV_NM/rif.x[rif.x_indx_peak], FACTOR_EV_NM/self.x[self.x_indx_peak])
     if not user_shift: x_shift = rif.x[rif.x_indx_peak] - self.x[self.x_indx_peak]
     if user_shift: x_shift = user_shift
     self.shift_ev = x_shift
@@ -263,12 +281,70 @@ def create_report(idx, w):
     t += '|'.join([':--:' for _ in head])+ '|\n'
     t += '|\n'.join([i.generate_report() for i in ECD.ecds])+ '|'
     if w: t += '|\n'+w.generate_report() + '|\n'
-    if args.sigma == float(0): s = args.fwhm*np.sqrt(2*np.log(2))/2
-    if args.sigma != float(0): s = args.sigma
-    t += '' + f'| Sigma (eV) | {np.round(s, 4)} | FWHM (eV) | {np.round(2*s*np.sqrt(2*np.log(2)), 4)} | |'
+    s = args.sigma if args.sigma != float(0) else args.fwhm/(np.sqrt(2*np.log(2))*2)
+    t += '' + f'| Sigma (eV) | {np.round(s, 4)} | FWHM (eV) | {args.fwhm if args.sigma != float(0) else np.round(2*s*np.sqrt(2*np.log(2)), 4)} | |'
     with open(f'{args.graph_directory}/report_{idx}.md', 'w') as f:
         f.write(t)
 
+
+def multi_plot():
+    fig, axs = plt.subplots(ncols=1, nrows=len(args.reference), sharex=True)
+    for idx, ax in enumerate(axs):
+    # shift graphs
+        if weighted:
+            shift(weighted, refs[idx], args.shift[idx] if args.shift else None)
+        if args.show_conformers or args.no_weighted:
+            for i in graphs:
+                if refs[idx]: shift(i, refs[idx], args.shift[idx] if args.shift else weighted.shift_ev)
+    # show graphs
+        if weighted:
+            weighted.plot(ax)
+        if refs: 
+            refs[idx].plot(ax)
+
+        if args.show_conformers or args.no_weighted:
+            alp = 0.3 if weighted else 1
+            for i in graphs:
+                i.plot(ax, alp)
+
+        ax2 = None
+        if args.show_R:
+            ax2 = ax.twinx()
+            weighted.plot_R(ax2)
+                
+        ax.set_ylim((-args.normalisation-0.1, args.normalisation+0.1))
+        if ax2: ax2.set_ylim((-args.normalisation-0.1, args.normalisation+0.1))
+        ax.set_xlim((args.initial_lambda, args.final_lambda))
+        if args.save: create_report(idx, weighted)
+
+def single_plot():
+    fig, ax = plt.subplots()
+    # shift graphs
+    if weighted:
+        shift(weighted, refs[0], args.shift[0] if args.shift else None)
+    if args.show_conformers or args.no_weighted:
+        for i in graphs:
+            if refs[0]: shift(i, refs[0], args.shift[0] if args.shift else weighted.shift_ev)
+# show graphs
+    if weighted:
+        weighted.plot(ax)
+    if refs: 
+        refs[0].plot(ax)
+
+    if args.show_conformers or args.no_weighted:
+        alp = 0.3 if weighted else 1
+        for i in graphs:
+            i.plot(ax, alp)
+
+    ax2 = None
+    if args.show_R:
+        ax2 = ax.twinx()
+        weighted.plot_R(ax2)
+            
+    ax.set_ylim((-args.normalisation-0.1, args.normalisation+0.1))
+    if ax2: ax2.set_ylim((-args.normalisation-0.1, args.normalisation+0.1))
+    ax.set_xlim((args.initial_lambda, args.final_lambda))
+    if args.save: create_report(0, weighted)
 
 if __name__ == '__main__':
 
@@ -297,53 +373,15 @@ if __name__ == '__main__':
         i.pop = get_pop(idx, i, pff)
 
     plotted = {}
-    c = len(args.reference) if args.reference else 1
-    fig, axs = plt.subplots(ncols=1, nrows=c, figsize=(6.21,6.26))
-    for idx, ax in enumerate(axs):
-
-    # shift graphs
-        if args.show_conformers or args.no_weighted:
-            for i in graphs:
-                if refs[idx]: shift(i, refs[idx], args.shift[idx] if args.shift else None)
-
-        if weighted:
-            shift(weighted, refs[idx], args.shift[idx] if args.shift else None)
-
-
-    # show graphs
-        ax2 = None
-        if args.show_conformers or args.no_weighted:
-            alp = 0.3 if weighted else 1
-            for i in graphs:
-                x, y = i.data()
-                plot = ax.plot(x, y, label=i.filename, alpha=alp)
-                plotted[i.filename] = plot
-
-        if weighted:
-            # print(FACTOR_EV_NM/weighted.shift_ev)
-            x, y = FACTOR_EV_NM/(weighted.x+weighted.shift_ev), weighted.y
-            plot = ax.plot(x, y, label=weighted.filename, color='salmon')
-            plotted[weighted.filename] = plot
-        if refs: 
-            plot = ax.plot(FACTOR_EV_NM/refs[idx].x, refs[idx].y, label=refs[idx].filename, color='brown')
-            plotted[refs[idx].filename] = plot
-            ax.set_title(f'{refs[idx].title} experimental peak comparison')
-
-
-        if args.show_R:
-            ax2 = ax.twinx()
-            for R, eV in zip(weighted.R/np.max(np.abs(weighted.R))*args.normalisation/2, weighted.eV):
-                ax2.vlines(FACTOR_EV_NM/eV, 0, R, color='red')
-                
-        ax.set_ylim((-args.normalisation-0.1, args.normalisation+0.1))
-        if ax2: ax2.set_ylim((-args.normalisation-0.1, args.normalisation+0.1))
-        ax.set_xlim((args.initial_lambda, args.final_lambda))
-        if args.save: create_report(idx, weighted)
-    
+    if len(args.reference) > 1:
+        multi_plot()
+    else:
+        single_plot()
     
     legend = plt.legend(
-        loc='upper center', bbox_to_anchor=(0.5, -.125), fancybox=True, shadow=True, ncol=3
+        loc='upper center', bbox_to_anchor=(0.5, -.35 if len(args.reference) > 1 else -0.125), fancybox=True, shadow=True, ncol=3
     )
+    
 
     plt.tight_layout()
 

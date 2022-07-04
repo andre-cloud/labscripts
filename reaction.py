@@ -222,12 +222,12 @@ def show_graph(legend, title, data, save, y_lim:float):
         ax.set_ylim(top=float(y_lim))
     
     if legend:
-        plt.legend(handles=leg_text,  loc='upper center', bbox_to_anchor=(0.5, -.075), fancybox=True, shadow=True, ncol=3)
+        plt.legend(handles=leg_text,  loc='upper center', bbox_to_anchor=(0.5, -.075), fancybox=True, shadow=True, ncol=4)
     plt.tight_layout()
     if save:
-        with open('tests/Rxn_profile.pickle', 'wb') as f:
+        with open('Rxn_profile.pickle', 'wb') as f:
             pickle.dump(fig, f)
-        plt.savefig('tests/Rxn_profile.png', dpi=700)
+        plt.savefig('Rxn_profile.png', dpi=700)
     plt.show()
 
 ax_label = []

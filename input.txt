@@ -1,17 +1,29 @@
 --# PES
-0,25.011858,1.140939,20.652358,0
+0, 31.88880318, -19.45720257
+0, 20.2402723, -20.37425823
+0.28112448, 26.36922522, -19.06124376
+3.130841918, 17.72008546, -27.16192095
+
 
 
 --# LABELS
-R-Ra,Cis,R-Sa,Trans,R-Ra
+INT4;TS2;INT6
+INT4;TS2;INT6
+INT4;TS2;INT6
+INT4;TS2;INT6
+
 
 --# GRAPHS
-colors : blue
-zero : 0; 0
-labelpoint : 1; 3
-title : Rotational Barrier of (R,Ra*)-3a
-legend : False
+colors : salmon;salmon;brown;brown
+label : S,Ra;S,Ra;S,Sa;S,Sa
+zero : 0
+labelpoint : 1
+title : Benzylation Catalitic Reaction without water molecule
+legend : True
 save : true
+style : dashed; solid; dashed; solid
 # points : (2,0)
-# ypad : 0; 1.5
+# ypad : 0;1;0;-1
 horizontalalignment : left;right
+# y_limit : 43
+decimal_digits : 1

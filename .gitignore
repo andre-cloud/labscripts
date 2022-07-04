@@ -139,3 +139,5 @@ input.txt
 .gitignore
 om_1
 .DS_Store
+old_files/
+utilities/
