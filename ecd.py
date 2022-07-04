@@ -53,7 +53,11 @@ parser.add_argument('-pff', '--pop_from_file',help='File containg population of 
 
 args = parser.parse_args()
 
-
+if args.shift: 
+    if len(args.shift)==1: 
+        args.shift*=len(args.file)
+    elif len(args.shift) != len(args.file):
+        Exception('Number of shifts defined is not the same number of files parsed')
 
 class File:
 
