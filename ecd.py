@@ -39,6 +39,7 @@ parser.add_argument('-n', '--normalisation', help='Set the normalisation range. 
 parser.add_argument('-sc','--show_conformers', help='Show all the plots of all conformers passed', action='store_true')
 parser.add_argument('-sR', '--show_R', help='Show Rstrenght bar in the plot (only for weightered plot)', action='store_true')
 parser.add_argument('-nw','--no_weighted', help='Do not show weighted plot on the graph. Use this for benchmarks or comparison.', action='store_true')
+parser.add_argument('-t','--title', help='Title of the graph')
 
 parser.add_argument('--save', help='Save pickle and csvs of the graph', action='store_true')
 parser.add_argument('-gd','--graph_directory', help='Define the directory in which you want to save the files of the graph. Default: %(default)s', default='scan_graph')
@@ -112,7 +113,7 @@ class Ref:
     def plot(self, ax):
         plot = ax.plot(FACTOR_EV_NM/self.x, self.y, label=self.filename, color='brown')
         plotted[self.filename] = plot
-        ax.set_title(f'{self.title} experimental peak comparison')
+        ax.set_title(f'{self.title} experimental peak comparison' if not args.title else args.title)
 
 
 class ECD:
@@ -320,6 +321,9 @@ def multi_plot():
         if ax2: ax2.set_ylim((-args.normalisation-0.1, args.normalisation+0.1))
         ax.set_xlim((args.initial_lambda, args.final_lambda))
         if args.save: create_report(idx, weighted)
+        ax.hlines(0, 0, 30000, 'grey', linewidth=.95)
+        ax.set_ylabel(r'$\Delta \varepsilon$ (a.u.)')
+        ax.set_xlabel('Wavelenght (nm)')
 
 def single_plot():
     fig, ax = plt.subplots()
@@ -349,6 +353,9 @@ def single_plot():
     if ax2: ax2.set_ylim((-args.normalisation-0.1, args.normalisation+0.1))
     ax.set_xlim((args.initial_lambda, args.final_lambda))
     if args.save: create_report(0, weighted)
+    ax.hlines(0, 0, 30000, 'grey', linewidth=.95)
+    ax.set_ylabel(r'$\Delta \varepsilon$ (a.u.)')
+    ax.set_xlabel('Wavelenght (nm)')
 
 if __name__ == '__main__':
 
