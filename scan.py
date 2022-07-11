@@ -33,7 +33,7 @@ parser.add_argument('-a', '--absolute', action='store_true', help='Toggle if abs
 parser.add_argument('-r', '--random', help='Activate random color generation', action='store_true')
 
 parser.add_argument('--save', help='Save pickle and csvs of the graph', action='store_true')
-parser.add_argument('-gd','--graph_directory', help='Define the directory in which you want to save the files of the graph. Default: %(default)s', default='ecd_graph')
+parser.add_argument('-gd','--graph_directory', help='Define the directory in which you want to save the files of the graph. Default: %(default)s', default='scan_graph')
 
 
 args = parser.parse_args()
