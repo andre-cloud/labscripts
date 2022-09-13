@@ -3,7 +3,6 @@ import os
 import numpy as np
 from scipy.constants import c, h, electron_volt
 import matplotlib.pyplot as plt
-from matplotlib.pyplot import figure
 import shutil
 import sys
 import pickle
@@ -17,7 +16,7 @@ parser = argparse.ArgumentParser()
 
 # files
 parser.add_argument('file', help='Log file(s) of the TD-SCF calculation', nargs='+')
-parser.add_argument('-r', '--reference', help='File xy of the ECD plot sperimental', nargs='+')
+parser.add_argument('-r', '--reference', help='File xy of the ECD plot sperimental', nargs='+', required=True)
 parser.add_argument('--ref_eV', action='store_false', help='If the reference graph is ∆ε against eV, use this flag.')
 parser.add_argument('--compare', action='store_true', help='Iput file are already convoluted ECD spectra')
 parser.add_argument('-l', '--level', help='Define the computational level of the simulated graph')
@@ -225,7 +224,6 @@ class Weighted_Plot:
         
         self.x_indx_peak = self.find_peak()
         self.shift_ev = 0
-        # print(self.x_indx_peak)
 
     def find_peak(self):
         max_ = np.argmax(self.y)
@@ -294,14 +292,17 @@ def create_report(idx, w):
 
 def multi_plot():
     fig, axs = plt.subplots(ncols=1, nrows=len(args.reference), sharex=True)
+
     for idx, ax in enumerate(axs):
-    # shift graphs
+
+        # shift graphs
         if weighted:
             shift(weighted, refs[idx], args.shift[idx] if args.shift else None)
         if args.show_conformers or args.no_weighted:
             for i in graphs:
                 if refs[idx]: shift(i, refs[idx], args.shift[idx] if args.shift else weighted.shift_ev)
-    # show graphs
+
+        # show graphs
         if weighted:
             weighted.plot(ax)
         if refs: 
@@ -317,23 +318,19 @@ def multi_plot():
             ax2 = ax.twinx()
             weighted.plot_R(ax2)
                 
-        ax.set_ylim((-args.normalisation-0.1, args.normalisation+0.1))
-        if ax2: ax2.set_ylim((-args.normalisation-0.1, args.normalisation+0.1))
-        ax.set_xlim((args.initial_lambda, args.final_lambda))
-        if args.save: create_report(idx, weighted)
-        ax.hlines(0, 0, 30000, 'grey', linewidth=.95)
-        ax.set_ylabel(r'$\Delta \varepsilon$ (a.u.)')
-        ax.set_xlabel('Wavelenght (nm)')
+        label_plot(ax, ax2)
 
 def single_plot():
     fig, ax = plt.subplots()
+
     # shift graphs
-    if weighted:
+    if weighted and refs:
         shift(weighted, refs[0], args.shift[0] if args.shift else None)
-    if args.show_conformers or args.no_weighted:
+    if (args.show_conformers or args.no_weighted) and refs:
         for i in graphs:
-            if refs[0]: shift(i, refs[0], args.shift[0] if args.shift else weighted.shift_ev)
-# show graphs
+            if refs: shift(i, refs[0], args.shift[0] if args.shift else weighted.shift_ev)
+            
+    # show graphs
     if weighted:
         weighted.plot(ax)
     if refs: 
@@ -349,6 +346,9 @@ def single_plot():
         ax2 = ax.twinx()
         weighted.plot_R(ax2)
             
+    label_plot(ax, ax2)
+
+def label_plot(ax, ax2):
     ax.set_ylim((-args.normalisation-0.1, args.normalisation+0.1))
     if ax2: ax2.set_ylim((-args.normalisation-0.1, args.normalisation+0.1))
     ax.set_xlim((args.initial_lambda, args.final_lambda))
@@ -356,6 +356,7 @@ def single_plot():
     ax.hlines(0, 0, 30000, 'grey', linewidth=.95)
     ax.set_ylabel(r'$\Delta \varepsilon$ (a.u.)')
     ax.set_xlabel('Wavelenght (nm)')
+
 
 if __name__ == '__main__':
 
@@ -384,13 +385,21 @@ if __name__ == '__main__':
         i.pop = get_pop(idx, i, pff)
 
     plotted = {}
-    if len(args.reference) > 1:
-        multi_plot()
+    if args.reference:
+        if len(args.reference) > 1:
+            multi_plot()
+        else:
+            single_plot()
     else:
         single_plot()
     
+    if args.reference:
+        y_legend = -.35 if len(args.reference) > 1 else -0.125
+    else:
+        y_legend = -0.25
+
     legend = plt.legend(
-        loc='upper center', bbox_to_anchor=(0.5, -.35 if len(args.reference) > 1 else -0.125), fancybox=True, shadow=True, ncol=3
+        loc='upper center', bbox_to_anchor=(0.5, y_legend), fancybox=True, shadow=True, ncol=3
     )
     
 

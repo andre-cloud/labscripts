@@ -1,6 +1,4 @@
 import argparse
-import datetime
-import sys
 
 import numpy as np
 from scipy.constants import R
@@ -26,7 +24,7 @@ def split_file(filename):
     fl = fl.splitlines()
     points = []
     prev_i = 0
-    for i in range(0, len(fl), int(fl[0])+2):
+    for i in range(0, len(fl)+1, int(fl[0])+2):
         if fl[prev_i:i]: points.append('\n'.join(fl[prev_i:i])) 
         prev_i=i
 

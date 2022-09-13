@@ -1,6 +1,6 @@
 import argparse
-import sys
-
+import os
+from functions import io
 
 import matplotlib.pyplot as plt
 import matplotlib.path as mpath
@@ -42,6 +42,7 @@ class Interpreter:
         'colors' : [None],
         'legend' : ['false'],
         'save' : ['false'],
+        'relative' : ['false'],
         'labelpoint' : [None],
         'zero' : ['0'],
         'title' : ['Reaction Energy Path'], 
@@ -53,14 +54,36 @@ class Interpreter:
         'ypad' : ['0'],
         'horizontalalignment' : ['0'],
         'y_limit' : [None],
-        'decimal_digits' : ['1']
+        'decimal_digits' : ['1'],
+        'directory' : ['reaction']
+    }
+
+    exp_prm = {
+        'label' : 'Str: Legend label for each path',
+        'colors' : 'Str: Matplotlib colors (so either CSS or HEX codes)',
+        'legend' : 'Bool: to display legend',
+        'save' : 'Bool: to save png and pickle files',
+        'relative' : 'Bool: to indicate that energies in PES section are relative (i+(i-1))',
+        'labelpoint' : 'List[Int]: starting from 0, to indicate near which point is asked to show the ∆G‡ relative to the zero',
+        'zero' : 'List[Int]: starting from zero to indicate the zero of each path',
+        'title' : 'Str: Title of the graph', 
+        'style' : 'List[Str]: matplotlib stiles for plots',
+        'linewidth' : 'List[Float]: linewidth of the plot\'s stroke',
+        'points' : 'List[Tuple]: (x,y) position of points',
+        'pointscolor' : 'List[Str]: similar to color but for points',
+        'pointsstyle' : 'List[Str]: similar to style but for points',
+        'ypad' : 'List[Float]: y-direction pad for the point label',
+        'horizontalalignment' : '',
+        'y_limit' : 'Float: define the top y limit',
+        'decimal_digits' : 'Int: define the number of decimals digits for the labeled points', 
+        'directory' : 'Str: name of the direcotry in which to save all files'
     }
 
     def __init__(self, filename):
         self.filename = filename
         self.read_file()
 
-        print(self.graph_prm)
+        # print(self.graph_prm)
 
 
         for idx, data in enumerate(list(self.pes)):
@@ -93,9 +116,11 @@ class Interpreter:
         show_graph(
             legend=True if self.graph_prm['legend'][0].lower() == 'true' else False,
             save=True if self.graph_prm['save'][0].lower() == 'true' else False, 
+            directory=self.graph_prm['directory'][0],
             title=self.graph_prm['title'][0], 
             data=data, 
-            y_lim=self.graph_prm['y_limit'][0]
+            y_lim=self.graph_prm['y_limit'][0],
+            file=self.file
             )
 
 
@@ -146,6 +171,13 @@ class Interpreter:
         if self.graph_prm['points']:
             if len(self.graph_prm['pointscolor']) !=  len(self.pes): self.graph_prm['pointscolor'] = [None] * len(self.pes)
             if len(self.graph_prm['pointsstyle']) !=  len(self.pes): self.graph_prm['pointsstyle'] = ['-'] * len(self.pes)
+
+        
+        if self.graph_prm['relative'][0].lower() == 'true':
+            for i in range(len(self.pes)):
+                for j in range(len(self.pes[i])):
+                    if j != 0:
+                        self.pes[i][j] = self.pes[i][j] + self.pes[i][j-1]
 
 
 
@@ -209,7 +241,7 @@ def x_labels(x_label, color):
         newax[i].spines['bottom'].set_visible(False)
 
 
-def show_graph(legend, title, data, save, y_lim:float):
+def show_graph(legend, title, data, save, directory, y_lim:float, file):
     ax.set_title(title)
     ax.set_ylabel(r"$\Delta G$ (kcal / mol)")
     plt.minorticks_on()
@@ -225,9 +257,13 @@ def show_graph(legend, title, data, save, y_lim:float):
         plt.legend(handles=leg_text,  loc='upper center', bbox_to_anchor=(0.5, -.075), fancybox=True, shadow=True, ncol=4)
     plt.tight_layout()
     if save:
-        with open('Rxn_profile.pickle', 'wb') as f:
+        io.mkdir(directory)
+        with open(os.path.join(directory, 'Rxn_profile.pickle'), 'wb') as f:
             pickle.dump(fig, f)
-        plt.savefig('Rxn_profile.png', dpi=700)
+        plt.savefig(os.path.join(directory, 'Rxn_profile.png'), dpi=700)
+        with open(os.path.join(directory, 'input.txt'), 'w') as f:
+            f.write(file)
+
     plt.show()
 
 ax_label = []
@@ -235,7 +271,7 @@ ax_label = []
 locs, labels = plt.xticks()
 
 
-prms = '\n'.join([f"- {i} : " for i in list(Interpreter.graph_prm.keys())])
+prms = '\n'.join([f"- {i} : {Interpreter.exp_prm[i]}" for i in list(Interpreter.graph_prm.keys())])
 parser = argparse.ArgumentParser(description=f'''
 Input file MUST contains, in this order, and in this formatting:
 
@@ -245,6 +281,8 @@ Input file MUST contains, in this order, and in this formatting:
 [...]
 --# GRAPHS
 [...]
+
+--- Explanations ---
 
 PES: Each line is a "reaction path". A line can contains many energy comma separated.
 

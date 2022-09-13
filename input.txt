@@ -1,29 +1,26 @@
 --# PES
-0, 31.88880318, -19.45720257
-0, 20.2402723, -20.37425823
-0.28112448, 26.36922522, -19.06124376
-3.130841918, 17.72008546, -27.16192095
-
+0, -37.76, 42.10, -14.54, 17.42, 38.08, 0.00, 20.24, -40.61, -27.75
+0, -37.76, 42.10, -16.04, 17.00, 39.11, 3.13, 17.72, -44.88, -21.14
 
 
 --# LABELS
-INT4;TS2;INT6
-INT4;TS2;INT6
-INT4;TS2;INT6
-INT4;TS2;INT6
+QDBnBr; QDBnH2O; QDBn; QDBn-NH(w); QDBn-NH(t); QDBn-NH (t)-BnBr; Pre; TS; QDBn-NBn (t); NN (t)
+QDBnBr; QDBnH2O; QDBn; QDBn-NH(w); QDBn-NH(t); QDBn-NH (t)-BnBr; Pre; TS; QDBn-NBn (t); NN (t)
 
 
 --# GRAPHS
-colors : salmon;salmon;brown;brown
-label : S,Ra;S,Ra;S,Sa;S,Sa
+colors : turquoise; salmon
+label : S,Ra; S,Sa
 zero : 0
-labelpoint : 1
+# labelpoint : 1
 title : Benzylation Catalitic Reaction without water molecule
 legend : True
 save : true
-style : dashed; solid; dashed; solid
+style : solid; solid
 # points : (2,0)
 # ypad : 0;1;0;-1
 horizontalalignment : left;right
 # y_limit : 43
 decimal_digits : 1
+relative : true
+directory : 'reaction'
