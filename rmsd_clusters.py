@@ -1,14 +1,22 @@
-import numpy as np
-from scipy.constants import R
+from functions.io import parse_ensemble
+from functions.chem import get_positions
+import argparse
+# from rmsd import rmsd
+import numpy as np 
+from itertools import product
 
 
-def boltzmann_perc(en, T):
-    return np.exp(-(en-np.min(en))/R*T)/np.sum(np.exp(-(en-np.min(en))/R*T))
+parser = argparse.ArgumentParser()
+
+parser.add_argument('files', nargs='+')
+# parser.add_argument('thr', type=float)
+
+args = parser.parse_args()
 
 
-def get_positions(xyz):
-    at = [atom for atom in xyz.splitlines()[2:]]
-    return np.array([a.strip().split()[1:] for a in at], dtype=np.float64)
+points = {file: parse_ensemble(file) for file in args.files}
+geoms = {}
+matches = {}
 
 
 
@@ -61,3 +69,31 @@ def calc_rmsd(v, w):
 
     # 7. Std-out initial and final RMSD
     return rmsd(coord_var_shifted, v)
+
+
+for i in points:
+    for idx, g in enumerate(points[i]):
+        geoms[idx] = get_positions(g)
+    points[i] = geoms.copy()
+    geoms = {}
+
+del geoms
+
+lists = [[f'{i}?{j}' for j in points[i]] for i in points]
+
+res = list(product(*lists))
+for g1, g2 in res:
+    d1, idx1 = g1.split('?')
+    d2, idx2 = g2.split('?')
+    v, w = points[d1][int(idx1)], points[d2][int(idx2)]
+
+    rmsd2 = calc_rmsd(v, w)    
+
+    if g1.replace('?', '_') not in matches: 
+        matches[g1.replace('?', '_')] = [rmsd2] 
+    else: 
+        matches[g1.replace('?', '_')].append(rmsd2)
+
+
+for i in matches:
+    print(matches[i])

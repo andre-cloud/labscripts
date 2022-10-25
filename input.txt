@@ -23,4 +23,4 @@ horizontalalignment : left;right
 # y_limit : 43
 decimal_digits : 1
 relative : true
-directory : 'reaction'
+directory : second_step_path

@@ -15,8 +15,11 @@ def parse_ensemble(file:str) -> list:
     fl = fl.splitlines()
     points = []
     prev_i = 0
-    for i in range(0, len(fl)+1, int(fl[0])+2):
-        if fl[prev_i:i]: points.append('\n'.join(fl[prev_i:i])) 
+    for i in range(int(fl[0].strip())+2, len(fl)+1, int(fl[0].strip())+2):
+        if prev_i != 0:
+            if fl[prev_i:i]: points.append('\n'.join(fl[prev_i:i])) 
+        else:
+            points.append('\n'.join(fl[:i])) 
         prev_i=i
     return points
 
