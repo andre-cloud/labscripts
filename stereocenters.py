@@ -1,5 +1,5 @@
 import argparse
-import openbabel as ob
+from openbabel import openbabel as ob
 from rdkit import Chem
 
 
