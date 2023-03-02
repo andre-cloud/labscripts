@@ -42,7 +42,7 @@ def get_irc(filename):
     plt.scatter(x, y, color=args.color)
 
     x = list(x)
-    text_on_graphs(x, y, prod_left=args.prod_right, arrow=args.arrow)
+    # text_on_graphs(x, y, prod_left=args.prod_right, arrow=args.arrow)
     show_graph(y)
 
 

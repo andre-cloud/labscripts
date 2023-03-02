@@ -1,5 +1,6 @@
 import argparse
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import numpy as np
 import pandas as pd 
 
@@ -20,6 +21,8 @@ ei = data_.pop(-1)
 df['TS'] = 0
 df['TS']['NN'] = sum(data_)+ei
 
+mpl.rcParams['figure.dpi'] = 300
+
 ax = df[['Fraction', 'TS']].T.plot.bar(stacked=True, legend=True, width=0.4, align='center', color=['#b3e0ff', '#4db8ff', '#0099ff', '#006bb3', '#003d66', '#000f1a'])
 ax.properties()['children'][1].set_color('#228b22')
 ax.set_title(args.title)
@@ -27,4 +30,5 @@ ax.set_ylabel(r'$\Delta$E (kcal/mol)')
 plt.axhline(y=0, xmin=0, xmax=2, color='black', alpha=0.7, linewidth=.75)
 
 plt.xticks(rotation=0)
+plt.savefig('dim.png', dpi=300)
 plt.show()

@@ -25,10 +25,10 @@ def parse_file(filename):
 
 ''')
         img = np.array( [i.split() for i in imag.split('\n')[2:]])
-        x, _ , y = img[:, 0], img[:, 1], img[:, 2]
+        x, _, y = img[:, 0], img[:, 1], img[:, 2]
         imags.append(np.array([(float(i), float(j)*H) for i, j in zip(x,y)]))
         intr = np.array( [i.split() for i in interp.split('\n')[2:] if i])
-        x, _ , y = intr[:, 0], intr[:, 1], intr[:, 2]
+        x, _, y = intr[:, 0], intr[:, 1], intr[:, 2]
         interpols.append(np.array([(float(i), float(j)*H) for i, j in zip(x,y)]))
     
     return imags, interpols
@@ -58,7 +58,7 @@ for file in args.filename:
     plt.xlabel('Reaction coordinate')
     plt.ylabel('∆E [kcal/mol]')
 
-    plt.xlim((0, 1))
+    # plt.xlim((0, 1))
 
     plt.tight_layout()
     if args.silent:

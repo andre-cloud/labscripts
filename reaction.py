@@ -52,7 +52,7 @@ class Interpreter:
         'pointscolor' : [],
         'pointsstyle' : [],
         'ypad' : ['0'],
-        'horizontalalignment' : ['0'],
+        'horizontalalignment' : ['left'],
         'y_limit' : [None],
         'decimal_digits' : ['1'],
         'directory' : ['reaction']
@@ -197,13 +197,13 @@ def create_path(data, color, label, labelpoint, zero, linestyle, linewidth:float
                 Path([(j, data[j]), (j + 0.5, data[j]), (j + 0.5, data[j + 1]),
                         (j + 1, data[j + 1])],
                         [Path.MOVETO, Path.CURVE4, Path.CURVE4, Path.CURVE4]),
-                fc="none", transform=ax.transData, color=color, label=label, linestyle=linestyle, linewidth=linewidth)
+                fc="none", transform=ax.transData, color=color, label=label, linestyle=linestyle, linewidth=float(linewidth))
         else:
             path_patch = mpatches.PathPatch(
                 Path([(j, data[j]), (j + 0.5, data[j]), (j + 0.5, data[j + 1]),
                         (j + 1, data[j + 1])],
                         [Path.MOVETO, Path.CURVE4, Path.CURVE4, Path.CURVE4]),
-                fc="none", transform=ax.transData, color=color, label=label, linestyle=linestyle, linewidth=linewidth)
+                fc="none", transform=ax.transData, color=color, label=label, linestyle=linestyle, linewidth=float(linewidth))
 
         ax.add_patch(path_patch)
         plt.hlines(data[j], j - 0.1, j + 0.1, color=color, alpha=0.7, linestyle=linestyle)
@@ -213,10 +213,12 @@ def create_path(data, color, label, labelpoint, zero, linestyle, linewidth:float
         plt.scatter(x, y, color=color, alpha=0.6, linewidth=0.3)
 
     if labelpoint is not None:
+        print(labelpoint)
         for idx, i in enumerate(labelpoint):
             va = 'center'
             ha = horizontalalignment[idx] if i != len(data)-1 else 'right'
             x = i+0.2 if ha != 'right' else i-.2
+            print(va, ha)
             plt.text(x,data[i]+float(ypad), f"$\Delta G^‡$ = {np.round(data[i]-data[zero], int(decimals))} kcal/mol", verticalalignment=va, horizontalalignment=ha, color=color)
 
 

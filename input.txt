@@ -1,26 +1,25 @@
 --# PES
-0, -37.76, 42.10, -14.54, 17.42, 38.08, 0.00, 20.24, -40.61, -27.75
-0, -37.76, 42.10, -16.04, 17.00, 39.11, 3.13, 17.72, -44.88, -21.14
-
+0,-13.32435909,24.77169771,45.01197001,4.397439478,-43.54963326
+1.069151538,-11.15944959,27.90253963,42.49178317,-2.3902232,-43.5681448
 
 --# LABELS
-QDBnBr; QDBnH2O; QDBn; QDBn-NH(w); QDBn-NH(t); QDBn-NH (t)-BnBr; Pre; TS; QDBn-NBn (t); NN (t)
-QDBnBr; QDBnH2O; QDBn; QDBn-NH(w); QDBn-NH(t); QDBn-NH (t)-BnBr; Pre; TS; QDBn-NBn (t); NN (t)
+QDBn + NH + BnBr; QDBn-NH + BnBr; QDBn-NH-BnBr; TS;POST;NN + QDBnBr
+QDBn + NH + BnBr; QDBn-NH + BnBr; QDBn-NH-BnBr; TS;POST;NN + QDBnBr
 
 
 --# GRAPHS
-colors : turquoise; salmon
-label : S,Ra; S,Sa
+colors : royalblue; crimson 
+label : S,Ra;S,Sa
 zero : 0
 # labelpoint : 1
-title : Benzylation Catalitic Reaction without water molecule
+title : Reaction Path
 legend : True
-save : true
-style : solid; solid
+save : false 
+style : solid; solid; solid
 # points : (2,0)
 # ypad : 0;1;0;-1
 horizontalalignment : left;right
 # y_limit : 43
 decimal_digits : 1
-relative : true
-directory : second_step_path
+# relative : true
+directory : /Users/andrea/Desktop/barrier

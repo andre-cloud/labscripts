@@ -46,7 +46,7 @@ def scan(scan_prm, const, fix, first=False, add=None) -> None:
     txt = f'''$constrain
 force constant=1.5
 {p1}: {', '.join(list(np.array(idx_1, dtype=str)))}, {start}
-{p2}: {', '.join(list(np.array(idx_2, dtype=str)))}, {val}{add_txt}{fix_txt}
+{p2}: {', '.join(list(np.array(idx_2, dtype=str)))}, {val}'''+add_txt+fix_txt+f'''
 $scan
 1: {start}, {end}, {step}
 end'''

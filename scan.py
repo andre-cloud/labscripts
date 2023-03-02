@@ -42,6 +42,8 @@ plots = []
 lines = []
 labels = []
 
+# mpl.rc('font', size=12)
+
 def get_scan(filename, i):
     padding = i*args.padding
     data = cclib.io.ccread(filename)
@@ -97,7 +99,7 @@ def show_graph():
     plt.xlabel(args.x_label)
     plt.tight_layout()
 
-    fig = plt.gcf()
+    # fig = plt.gcf().set_dpi(1000)
     if args.save:
         save_graph(fig)
     
@@ -192,7 +194,7 @@ def from_file(filename, i):
 
     data = [[float(i.strip().split()[0]), float(i.strip().split()[1])] for i in fl.split('\n') if i]
     data = np.array(data)
-    x, y = data[:, 0], data[:, 1]
+    x, y = data[:, 0][::2], data[:, 1][::2]
     if not args.absolute : y -= min(y)
     if not args.absolute : y *= 627.51
     x, y = check_x(x, y)
@@ -223,7 +225,7 @@ def plot(x, y, padding, filename, maxs, y_max):
         labels.append(os.path.split(filename)[1].strip('.log') if len(args.file)>1 else None)
         return
 
-    l = plt.plot(x,y+padding, linewidth=0.5, alpha=0.4, color=args.colors[args.file.index(filename)])
+    l = plt.plot(x,y+padding, linewidth=1, alpha=0.4, color=args.colors[args.file.index(filename)])
     a = plt.scatter(x,y+padding, label=os.path.split(filename)[1].strip('.log') if len(args.file)>1 else None, color=args.colors[args.file.index(filename)])
     plt.scatter(maxs, y_max+padding, alpha=0.4, color='red')
     plots.append(a)
