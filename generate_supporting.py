@@ -1,7 +1,11 @@
-import argparse, cclib, getpass, os
+#!/usr/bin/python3
 
+import argparse, cclib, getpass, os
+import scipy
 
 DEBUG = getpass.getuser() == 'andrea'
+HARTREE_TO_EV = scipy.constants.physical_constants["Hartree energy in eV"][0]
+
 
 def parse():
     parser = argparse.ArgumentParser()
@@ -19,16 +23,16 @@ def parse_output(file, name, sep):
     data = cclib.io.ccread(file)
     geom = "\n".join(data.writexyz().splitlines()[2:])
     txt = f'''{name:<}
-Inner Energy (Hartree)      : {data.scfenergies[-1]:<5.10f}
+Inner Energy (Hartree)      : {data.scfenergies[-1]/HARTREE_TO_EV:<5.10f}
 Zero Point Energy (Hartree) : {data.zpve:<5.10f}
 Enthalpy (Hartree)          : {data.enthalpy:<5.10f}
 Entropy (Hartree)           : {data.entropy:<5.10f}
 Gibbs Energy (Hartree)      : {data.freeenergy:<5.10f}
-Immaginary Frequency (cm-1) : {','.join([f'{i:.2f}' for i in data.vibfreqs if i<0]) if data.vibfreqs[data.vibfreqs<0] else "None"}
+Imaginary Frequency (cm-1)  : {','.join([f'{i:.2f}' for i in data.vibfreqs if i<0]) if data.vibfreqs[data.vibfreqs<0] else "None"}
 
 {geom}
 {sep}
-    '''
+'''
     return txt
 
 
@@ -54,3 +58,4 @@ if __name__=='__main__':
         write_in_file(geom, args.output)
     
     print('All geometries have been parsed.')
+

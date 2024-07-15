@@ -1,25 +1,23 @@
 --# PES
-0,-13.32435909,24.77169771,45.01197001,4.397439478,-43.54963326
-1.069151538,-11.15944959,27.90253963,42.49178317,-2.3902232,-43.5681448
+0.00, 9.65, -37.86
+0.37, 12.15, -37.49
+0.00, 7.67, -36.15
+0.96, 11.26, -37.39
 
 --# LABELS
-QDBn + NH + BnBr; QDBn-NH + BnBr; QDBn-NH-BnBr; TS;POST;NN + QDBnBr
-QDBn + NH + BnBr; QDBn-NH + BnBr; QDBn-NH-BnBr; TS;POST;NN + QDBnBr
-
+Pre; TS; Post
+Pre; TS; Post
+Pre; TS; Post
+Pre; TS; Post
 
 --# GRAPHS
-colors : royalblue; crimson 
-label : S,Ra;S,Sa
-zero : 0
-# labelpoint : 1
-title : Reaction Path
-legend : True
-save : false 
-style : solid; solid; solid
-# points : (2,0)
-# ypad : 0;1;0;-1
-horizontalalignment : left;right
-# y_limit : 43
+colors : #2D6A65; #2D6A6540; #3F9FFF; #3F9FFF40
+label : \textbf{3}-Re; \textbf{3}-Si; \textbf{7}-Re; \textbf{7}-Si
+title : Pathway comparison between 3 and 7 
+legend : true
+save : true
+style : solid; dashed; solid; dashed
+#y_limit : 43
 decimal_digits : 1
 # relative : true
-directory : /Users/andrea/Desktop/barrier
+directory : /Users/andrea/Desktop/comparison

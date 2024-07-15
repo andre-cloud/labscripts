@@ -2,6 +2,7 @@ import argparse
 import os
 from functions import io
 
+import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.path as mpath
 import matplotlib.patches as mpatches
@@ -12,6 +13,9 @@ import pickle
 
 Path = mpath.Path
 fig, ax = plt.subplots()
+matplotlib.rc('text', usetex=True)
+matplotlib.rcParams['text.latex.preamble']="\\usepackage{amsmath}"
+
 
 newax_text_list = []
 leg_text = []
@@ -83,8 +87,6 @@ class Interpreter:
         self.filename = filename
         self.read_file()
 
-        # print(self.graph_prm)
-
 
         for idx, data in enumerate(list(self.pes)):
             create_path(
@@ -99,10 +101,10 @@ class Interpreter:
                 horizontalalignment=self.graph_prm['horizontalalignment'],
                 decimals = self.graph_prm['decimal_digits'][0]
                 )
-            x_labels(
-                self.labels[idx], 
-                self.graph_prm['colors'][idx]
-                )
+        
+        x_labels(
+            self.labels[0], 
+            )
         if self.graph_prm['points']:
             for idx, i in enumerate(self.graph_prm['points']):
                 data = np.array(i.strip('(').strip(')').split(','), dtype=np.float64)
@@ -133,6 +135,7 @@ class Interpreter:
         pes, labels, graph_prm = [i.strip().split('\n')[1:] for i in self.file.split('--# ')[1:] if i]
         pes = [[float(j) for j in i.split(',') if j] for i in pes if i]
         self.labels = [[j.strip() for j in i.split(';')] for i in labels]
+        print(self.labels)
         self.pes = np.array(pes, dtype='float64')
 
 
@@ -151,11 +154,9 @@ class Interpreter:
         if len(self.graph_prm['colors']) !=  len(self.pes): self.graph_prm['colors'] = [None] * len(self.pes)
 
         if len(self.graph_prm['label']) !=  len(self.pes): self.graph_prm['label'] = [None] * len(self.pes)
-
-
-
         if set(self.graph_prm['label']) == set([None]): self.graph_prm['legend'] = 'False'
         
+
         if len(self.graph_prm['zero']) !=  len(self.pes):
             if set(self.graph_prm['zero']) != set(['0']):
                 raise InputError('zero', len(self.pes))
@@ -197,13 +198,13 @@ def create_path(data, color, label, labelpoint, zero, linestyle, linewidth:float
                 Path([(j, data[j]), (j + 0.5, data[j]), (j + 0.5, data[j + 1]),
                         (j + 1, data[j + 1])],
                         [Path.MOVETO, Path.CURVE4, Path.CURVE4, Path.CURVE4]),
-                fc="none", transform=ax.transData, color=color, label=label, linestyle=linestyle, linewidth=float(linewidth))
+                fc="none", transform=ax.transData, color=color, label=u'{0}'.format(label), linestyle=linestyle, linewidth=float(linewidth))
         else:
             path_patch = mpatches.PathPatch(
                 Path([(j, data[j]), (j + 0.5, data[j]), (j + 0.5, data[j + 1]),
                         (j + 1, data[j + 1])],
                         [Path.MOVETO, Path.CURVE4, Path.CURVE4, Path.CURVE4]),
-                fc="none", transform=ax.transData, color=color, label=label, linestyle=linestyle, linewidth=float(linewidth))
+                fc="none", transform=ax.transData, color=color, label=u'{0}'.format(label), linestyle=linestyle, linewidth=float(linewidth))
 
         ax.add_patch(path_patch)
         plt.hlines(data[j], j - 0.1, j + 0.1, color=color, alpha=0.7, linestyle=linestyle)
@@ -219,28 +220,12 @@ def create_path(data, color, label, labelpoint, zero, linestyle, linewidth:float
             ha = horizontalalignment[idx] if i != len(data)-1 else 'right'
             x = i+0.2 if ha != 'right' else i-.2
             print(va, ha)
-            plt.text(x,data[i]+float(ypad), f"$\Delta G^‡$ = {np.round(data[i]-data[zero], int(decimals))} kcal/mol", verticalalignment=va, horizontalalignment=ha, color=color)
+            plt.text(x,data[i]+float(ypad), f"$\Delta G^\ddagger$ = {np.round(data[i]-data[zero], int(decimals))} kcal/mol", verticalalignment=va, horizontalalignment=ha, color=color)
 
 
-def x_labels(x_label, color):
+def x_labels(x_label):
     plt.xticks(range(len(x_label)), x_label)
-
-    newax = []
-    for i in range(len(ax_label)):
-        if i > 0:
-            y = ax.twiny()
-            newax.append(y)
-    for i in range(len(newax)):
-        newax[i].set_xticks(locs)
-        newax[i].set_xlim(ax.get_xlim())
-        newax[i].tick_params(axis='x', color=color)
-        newax[i].set_xticklabels(newax_text_list[i + 1])
-        newax_text_list.append(newax[i])
-        newax[i].xaxis.set_ticks_position('bottom')
-        newax[i].xaxis.set_label_position('bottom')
-        newax[i].xaxis.set_ticks_position('none')
-        newax[i].spines['bottom'].set_position(('outward', 15 * (i + 1)))
-        newax[i].spines['bottom'].set_visible(False)
+    
 
 
 def show_graph(legend, title, data, save, directory, y_lim:float, file):

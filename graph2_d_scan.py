@@ -19,8 +19,8 @@ def get_data():
     z = np.load('en.npy')
     print(z)
     x, y = np.load('grid.npy')
-    z = (z-np.min(z))*627.51
-    # z = (z--99.211622228294)*627.51
+    # z = (z-np.min(z))*627.51
+    z = (z--171.612669228135)*627.51
     z = z[:-1, :-1]
     return x, y, z
 
@@ -34,13 +34,12 @@ def animate(i):
 
 def plot(x, y, z):
     z_min, z_max = -20, 20 # 
-    z_min, z_max = np.abs(z).min(), (np.abs(z).min()+60 if z[z>100].any() else np.max(z))
+    # z_min, z_max = np.abs(z).min(), (np.abs(z).min()+60 if z[z>100].any() else np.max(z))
 
-    print(z)
     c = ax.pcolormesh(x, y, z, cmap='coolwarm', vmin=z_min, vmax= z_max)
     ax.set_title('2D PES around N-H and C-N bond formation')
-    ax.set_xlabel('N-H distance [Å]')
-    ax.set_ylabel('C-N distance [Å]')
+    ax.set_xlabel('C-C distance (67-87) [Å]')
+    ax.set_ylabel('C-C distance (68-86) [Å]')
 
     # set the limits of the plot to the limits of the data
     ax.axis([x.min(), x.max(), y.min(), y.max()])
